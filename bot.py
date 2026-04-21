@@ -6,14 +6,9 @@ TOKEN = os.getenv("TOKEN")
 
 questions = [
     {
-        "question": "Hero dengan julukan King of Lifesteal?",
-        "options": ["Alucard", "Zilong", "Aldous", "Leomord"],
+        "question": "Hero dengan lifesteal tinggi?",
+        "options": ["Alucard", "Layla", "Miya", "Eudora"],
         "answer": 0
-    },
-    {
-        "question": "Ultimate Harith bernama?",
-        "options": ["Chrono Dash", "Zaman Force", "Black Shoes", "Time Rift"],
-        "answer": 2
     }
 ]
 
@@ -21,7 +16,7 @@ user_data = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("🔥 Mulai Quiz", callback_data="start")]]
-    await update.message.reply_text("🎮 Selamat datang di Quiz MLBB!", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text("🎮 Quiz MLBB!", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -49,7 +44,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user["index"] < len(questions):
             await send_question(query)
         else:
-            await query.message.reply_text(f"🏆 Quiz selesai!\nSkor kamu: {user['score']}/{len(questions)}")
+            await query.message.reply_text(f"🏆 Skor: {user['score']}")
 
 async def send_question(query):
     chat_id = query.message.chat.id
@@ -61,10 +56,7 @@ async def send_question(query):
         for i, opt in enumerate(q["options"])
     ]
 
-    await query.message.reply_text(
-        f"❓ {q['question']}",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await query.message.reply_text(q["question"], reply_markup=InlineKeyboardMarkup(keyboard))
 
 app = ApplicationBuilder().token(TOKEN).build()
 
