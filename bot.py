@@ -9,6 +9,12 @@ user_data = {}
 # ================== COMMAND ==================
 
 def start(update, context):
+    text = update.message.text
+
+    # wajib pakai /start@botusername
+    if "@quizmlbb_bot" not in text:
+        return
+
     if update.effective_chat.type == "private":
         update.message.reply_text("❌ Bot hanya untuk grup!")
         return
@@ -47,7 +53,7 @@ def button(update, context):
     chat_id = str(query.message.chat.id)
     name = query.from_user.first_name
 
-    # ================= START GAME =================
+    # ================= START =================
     if query.data == "start":
         if chat_id in user_data and user_data[chat_id].get("active"):
             query.message.reply_text("⚠️ Game masih berjalan!")
@@ -57,7 +63,7 @@ def button(update, context):
             "index": 0,
             "score": 0,
             "active": True,
-            "questions": get_questions()
+            "questions": get_questions()  # 🔥 RANDOM
         }
 
         query.message.reply_text("🔥 Quiz dimulai!")
@@ -69,18 +75,28 @@ def button(update, context):
         return
 
     user = user_data[chat_id]
+
+    # pastikan tombol jawaban
+    if not query.data.startswith("ans_"):
+        return
+
     ans = int(query.data.split("_")[1])
     q = user["questions"][user["index"]]
+
+    # 🔒 matikan tombol biar tidak spam
+    try:
+        query.edit_message_reply_markup(reply_markup=None)
+    except:
+        pass
 
     # ================= JAWABAN =================
     if ans == q["answer"]:
         user["score"] += 10
 
-        context.bot.send_message(
-            chat_id=int(chat_id),
-            text="JAWABAN BENAR ✅\n\n"
-                 "Selamat kamu bertambah 10 Poin \n"
-                 f"Total Poin kamu saat ini 👉 {user['score']}"
+        query.message.reply_text(
+            "JAWABAN BENAR ✅\n\n"
+            "Selamat kamu bertambah 10 Poin \n"
+            f"Total Poin kamu saat ini 👉 {user['score']}"
         )
 
     # ================= LANJUT =================
@@ -89,7 +105,7 @@ def button(update, context):
     if user["index"] < len(user["questions"]):
         send_question(context.bot, chat_id)
     else:
-        # simpan leaderboard tanpa notif
+        # simpan tanpa notif
         database.save_score(chat_id, name, user["score"])
         user["active"] = False
 
