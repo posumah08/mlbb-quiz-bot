@@ -11,6 +11,7 @@ user_data = {}
 
 def start(update, context):
     text = update.message.text
+    chat_id = str(update.effective_chat.id)
 
     # wajib pakai /start@botusername
     if "@quizmlbb_bot" not in text:
@@ -20,9 +21,14 @@ def start(update, context):
         update.message.reply_text("❌ Bot hanya untuk grup!")
         return
 
-    chat_id = str(update.effective_chat.id)
     database.save_chat(chat_id)
 
+    # 🔥 kalau game sedang berjalan
+    if chat_id in user_data and user_data[chat_id].get("active"):
+        update.message.reply_text("⚠️ Game masih berjalan!")
+        return
+
+    # 🔥 kalau belum ada tombol / game selesai → kirim tombol lagi
     keyboard = [[InlineKeyboardButton("🎮 Mulai Quiz", callback_data="start")]]
 
     update.message.reply_text(
@@ -41,11 +47,13 @@ def send_question(bot, chat_id):
         for i, opt in enumerate(q["options"])
     ]
 
-    bot.send_message(
+    msg = bot.send_message(
         chat_id=int(chat_id),
         text=f"❓ {q['question']}",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+    user["last_q_msg"] = msg.message_id
 
 def button(update, context):
     query = update.callback_query
@@ -56,15 +64,24 @@ def button(update, context):
 
     # ================= START =================
     if query.data == "start":
+
+        # ❌ kalau game masih jalan
         if chat_id in user_data and user_data[chat_id].get("active"):
-            query.message.reply_text("⚠️ Game masih berjalan!")
+            query.answer("Game masih berjalan!", show_alert=True)
             return
+
+        # 🔥 hapus tombol start
+        try:
+            query.edit_message_reply_markup(reply_markup=None)
+        except:
+            pass
 
         user_data[chat_id] = {
             "index": 0,
             "score": 0,
             "active": True,
-            "questions": get_questions()
+            "questions": get_questions(),
+            "last_q_msg": None
         }
 
         query.message.reply_text("🔥 Quiz dimulai!")
@@ -83,9 +100,9 @@ def button(update, context):
     ans = int(query.data.split("_")[1])
     q = user["questions"][user["index"]]
 
-    # 🔒 matikan tombol biar tidak spam
+    # 🔥 hapus soal sebelumnya
     try:
-        query.edit_message_reply_markup(reply_markup=None)
+        context.bot.delete_message(chat_id=int(chat_id), message_id=user["last_q_msg"])
     except:
         pass
 
@@ -93,13 +110,14 @@ def button(update, context):
     if ans == q["answer"]:
         user["score"] += 10
 
-        query.message.reply_text(
-            "JAWABAN BENAR ✅\n\n"
-            "Selamat kamu bertambah 10 Poin \n"
-            f"Total Poin kamu saat ini 👉 {user['score']}"
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text="JAWABAN BENAR ✅\n\n"
+                 "Selamat kamu bertambah 10 Poin \n"
+                 f"Total Poin kamu saat ini 👉 {user['score']}"
         )
 
-        time.sleep(3)  # ⏳ jeda 3 detik
+        time.sleep(3)
 
     # ================= LANJUT =================
     user["index"] += 1
@@ -109,41 +127,3 @@ def button(update, context):
     else:
         database.save_score(chat_id, name, user["score"])
         user["active"] = False
-
-# ================== LEADERBOARD ==================
-
-def leaderboard(update, context):
-    data = database.get_leaderboard()
-    text = "🏆 LEADERBOARD\n\n"
-
-    for i, (name, score) in enumerate(data, 1):
-        text += f"{i}. {name} - {score}\n"
-
-    update.message.reply_text(text)
-
-# ================== BROADCAST ==================
-
-def broadcast(update, context):
-    if update.effective_user.id != OWNER_ID:
-        return
-
-    msg = " ".join(context.args)
-
-    for chat_id in database.get_chats():
-        try:
-            context.bot.send_message(chat_id=int(chat_id), text=msg)
-        except:
-            pass
-
-# ================== RUN ==================
-
-updater = Updater(TOKEN, use_context=True)
-dp = updater.dispatcher
-
-dp.add_handler(CommandHandler("start", start))
-dp.add_handler(CommandHandler("leaderboard", leaderboard))
-dp.add_handler(CommandHandler("broadcast", broadcast))
-dp.add_handler(CallbackQueryHandler(button))
-
-updater.start_polling()
-updater.idle()
