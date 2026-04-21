@@ -91,13 +91,15 @@ def button(update, context):
 
     # ================= JAWABAN =================
     if ans == q["answer"]:
-        user["score"] += 10
+    user["score"] += 10
 
-        query.message.reply_text(
-            "JAWABAN BENAR ✅\n\n"
-            "Selamat kamu bertambah 10 Poin \n"
-            f"Total Poin kamu saat ini 👉 {user['score']}"
-        )
+    query.message.reply_text(
+        "JAWABAN BENAR ✅\n\n"
+        "Selamat kamu bertambah 10 Poin \n"
+        f"Total Poin kamu saat ini 👉 {user['score']}"
+    )
+
+    time.sleep(10)  # ⏳ jeda 10 detik sebelum soal berikut
 
     # ================= LANJUT =================
     user["index"] += 1
