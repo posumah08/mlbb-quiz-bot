@@ -5,7 +5,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 
 TOKEN = os.getenv("TOKEN")
-OWNER_ID = 123456789  # GANTI dengan ID Telegram kamu
+OWNER_ID = 6776834334
 
 DATA_FILE = "leaderboard.json"
 CHAT_FILE = "chats.json"
