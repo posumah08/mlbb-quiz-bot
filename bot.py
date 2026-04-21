@@ -3,6 +3,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 from config import TOKEN, OWNER_ID
 from questions import get_questions
 import database
+import time
 
 user_data = {}
 
@@ -63,7 +64,7 @@ def button(update, context):
             "index": 0,
             "score": 0,
             "active": True,
-            "questions": get_questions()  # 🔥 RANDOM
+            "questions": get_questions()
         }
 
         query.message.reply_text("🔥 Quiz dimulai!")
@@ -76,7 +77,6 @@ def button(update, context):
 
     user = user_data[chat_id]
 
-    # pastikan tombol jawaban
     if not query.data.startswith("ans_"):
         return
 
@@ -91,15 +91,15 @@ def button(update, context):
 
     # ================= JAWABAN =================
     if ans == q["answer"]:
-    user["score"] += 10
+        user["score"] += 10
 
-    query.message.reply_text(
-        "JAWABAN BENAR ✅\n\n"
-        "Selamat kamu bertambah 10 Poin \n"
-        f"Total Poin kamu saat ini 👉 {user['score']}"
-    )
+        query.message.reply_text(
+            "JAWABAN BENAR ✅\n\n"
+            "Selamat kamu bertambah 10 Poin \n"
+            f"Total Poin kamu saat ini 👉 {user['score']}"
+        )
 
-    time.sleep(10)  # ⏳ jeda 10 detik sebelum soal berikut
+        time.sleep(10)  # ⏳ jeda 10 detik
 
     # ================= LANJUT =================
     user["index"] += 1
@@ -107,7 +107,6 @@ def button(update, context):
     if user["index"] < len(user["questions"]):
         send_question(context.bot, chat_id)
     else:
-        # simpan tanpa notif
         database.save_score(chat_id, name, user["score"])
         user["active"] = False
 
@@ -129,6 +128,7 @@ def broadcast(update, context):
         return
 
     msg = " ".join(context.args)
+
     for chat_id in database.get_chats():
         try:
             context.bot.send_message(chat_id=int(chat_id), text=msg)
