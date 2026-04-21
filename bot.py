@@ -99,7 +99,7 @@ def button(update, context):
             f"Total Poin kamu saat ini 👉 {user['score']}"
         )
 
-        time.sleep(10)  # ⏳ jeda 10 detik
+        time.sleep(3)  # ⏳ jeda 3 detik
 
     # ================= LANJUT =================
     user["index"] += 1
