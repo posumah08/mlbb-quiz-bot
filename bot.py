@@ -115,18 +115,20 @@ def button(update, context):
         return
 
     user = user_data[chat_id]
-    ans = int(query.data.split("_")[1])
     q = user.get("current_q")
 
+    # 🔥 FIX: kalau soal hilang, kirim ulang
     if not q:
+        send_question(context.bot, chat_id)
         return
+
+    ans = int(query.data.split("_")[1])
 
     # hapus soal lama
     try:
-        context.bot.delete_message(
-            chat_id=int(chat_id),
-            message_id=user.get("last_q_msg")
-        )
+        last = user.get("last_q_msg")
+        if last:
+            context.bot.delete_message(chat_id=int(chat_id), message_id=last)
     except:
         pass
 
@@ -143,6 +145,14 @@ def button(update, context):
 
         time.sleep(2)
 
+    else:
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text="SALAH ❌"
+        )
+        time.sleep(1)
+
+    # 🔥 WAJIB: kirim soal baru
     send_question(context.bot, chat_id)
 
 # ================== NEXT ==================
@@ -150,29 +160,22 @@ def button(update, context):
 def next_q(update, context):
     text = update.message.text
     chat_id = str(update.effective_chat.id)
-    message_id = update.message.message_id
 
     if not valid_command(text):
         return
-
-    # hapus command /next
-    try:
-        context.bot.delete_message(chat_id=int(chat_id), message_id=message_id)
-    except:
-        pass
 
     if chat_id not in user_data or not user_data[chat_id].get("active"):
         return
 
     # hapus soal lama
     try:
-        context.bot.delete_message(
-            chat_id=int(chat_id),
-            message_id=user_data[chat_id].get("last_q_msg")
-        )
+        last = user_data[chat_id].get("last_q_msg")
+        if last:
+            context.bot.delete_message(chat_id=int(chat_id), message_id=last)
     except:
         pass
 
+    # 🔥 FIX: kirim soal baru
     send_question(context.bot, chat_id)
 
 # ================== LEADERBOARD GLOBAL ==================
@@ -223,21 +226,15 @@ def stats(update, context):
 
 # ================== RUN ==================
 
-def main():
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
+updater = Updater(TOKEN, use_context=True)
+dp = updater.dispatcher
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("next", next_q))
-    dp.add_handler(CommandHandler("leaderboard", leaderboard))
-    dp.add_handler(CommandHandler("topgrup", topgrup))
-    dp.add_handler(CommandHandler("stats", stats))
-    dp.add_handler(CallbackQueryHandler(button))
+dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CommandHandler("next", next_q))
+dp.add_handler(CommandHandler("leaderboard", leaderboard))
+dp.add_handler(CommandHandler("topgrup", topgrup))
+dp.add_handler(CommandHandler("stats", stats))
+dp.add_handler(CallbackQueryHandler(button))
 
-    print("BOT RUNNING...")
-
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == "__main__":
-    main()
+updater.start_polling()
+updater.idle()
