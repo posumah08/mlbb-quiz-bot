@@ -44,7 +44,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user["index"] < len(questions):
             await send_question(query)
         else:
-            await query.message.reply_text(f"🏆 Skor: {user['score']}")
+            await query.message.reply_text(f"🏆 Skor kamu: {user['score']}")
 
 async def send_question(query):
     chat_id = query.message.chat.id
