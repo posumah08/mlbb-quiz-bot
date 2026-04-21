@@ -2,7 +2,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
 
-TOKEN = os.getenv(8719841221:AAHKSZ9DZW79iLXVzGPZdBYMGOTqZnPgzRo)
+TOKEN = os.getenv("TOKEN")
 
 questions = [
     {
