@@ -1,11 +1,17 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
-from config import TOKEN, OWNER_ID
-from questions import get_questions
+from config import TOKEN
+from questions import QUESTIONS
 import database
+import random
 import time
 
 user_data = {}
+
+# ================== UTIL ==================
+
+def get_random_question():
+    return random.choice(QUESTIONS)
 
 # ================== COMMAND ==================
 
@@ -13,7 +19,6 @@ def start(update, context):
     text = update.message.text
     chat_id = str(update.effective_chat.id)
 
-    # wajib pakai /start@botusername
     if "@quizmlbb_bot" not in text:
         return
 
@@ -21,18 +26,14 @@ def start(update, context):
         update.message.reply_text("❌ Bot hanya untuk grup!")
         return
 
-    database.save_chat(chat_id)
-
-    # 🔥 kalau game sedang berjalan
     if chat_id in user_data and user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game masih berjalan!")
         return
 
-    # 🔥 kalau belum ada tombol / game selesai → kirim tombol lagi
     keyboard = [[InlineKeyboardButton("🎮 Mulai Quiz", callback_data="start")]]
 
     update.message.reply_text(
-        "🔥 QUIZ MLBB\n\nKlik tombol untuk mulai!",
+        "🔥 QUIZ MLBB (MODE TERCEPAT)\n\nKlik tombol untuk mulai!",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -40,7 +41,10 @@ def start(update, context):
 
 def send_question(bot, chat_id):
     user = user_data[chat_id]
-    q = user["questions"][user["index"]]
+    q = get_random_question()
+
+    user["current_q"] = q
+    user["answered"] = False  # 🔥 reset rebutan
 
     keyboard = [
         [InlineKeyboardButton(opt, callback_data=f"ans_{i}")]
@@ -60,31 +64,29 @@ def button(update, context):
     query.answer()
 
     chat_id = str(query.message.chat.id)
+    user_id = str(query.from_user.id)
     name = query.from_user.first_name
 
     # ================= START =================
     if query.data == "start":
 
-        # ❌ kalau game masih jalan
         if chat_id in user_data and user_data[chat_id].get("active"):
             query.answer("Game masih berjalan!", show_alert=True)
             return
 
-        # 🔥 hapus tombol start
         try:
             query.edit_message_reply_markup(reply_markup=None)
         except:
             pass
 
         user_data[chat_id] = {
-            "index": 0,
-            "score": 0,
             "active": True,
-            "questions": get_questions(),
-            "last_q_msg": None
+            "current_q": None,
+            "last_q_msg": None,
+            "answered": False
         }
 
-        query.message.reply_text("🔥 Quiz dimulai!")
+        query.message.reply_text("🔥 Quiz dimulai (REBUTAN)!")
         send_question(context.bot, chat_id)
         return
 
@@ -97,33 +99,55 @@ def button(update, context):
     if not query.data.startswith("ans_"):
         return
 
-    ans = int(query.data.split("_")[1])
-    q = user["questions"][user["index"]]
+    # 🔥 kalau sudah ada yang jawab duluan
+    if user.get("answered"):
+        query.answer("❌ Sudah dijawab!", show_alert=True)
+        return
 
-    # 🔥 hapus soal sebelumnya
+    ans = int(query.data.split("_")[1])
+    q = user["current_q"]
+
+    # 🔥 kunci jawaban pertama
+    user["answered"] = True
+
+    # 🔥 matikan tombol
+    try:
+        query.edit_message_reply_markup(reply_markup=None)
+    except:
+        pass
+
+    # ================= HASIL =================
+    if ans == q["answer"]:
+        database.add_global_score(user_id, name, 10)
+
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text=f"⚡ {name} tercepat!\n+10 poin"
+        )
+    else:
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text=f"❌ {name} salah!"
+        )
+
+    time.sleep(3)
+
+    # 🔥 hapus soal lama
     try:
         context.bot.delete_message(chat_id=int(chat_id), message_id=user["last_q_msg"])
     except:
         pass
 
-    # ================= JAWABAN =================
-    if ans == q["answer"]:
-        user["score"] += 10
+    # lanjut soal baru
+    send_question(context.bot, chat_id)
 
-        context.bot.send_message(
-            chat_id=int(chat_id),
-            text="JAWABAN BENAR ✅\n\n"
-                 "Selamat kamu bertambah 10 Poin \n"
-                 f"Total Poin kamu saat ini 👉 {user['score']}"
-        )
+# ================== RUN ==================
 
-        time.sleep(3)
+updater = Updater(TOKEN, use_context=True)
+dp = updater.dispatcher
 
-    # ================= LANJUT =================
-    user["index"] += 1
+dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CallbackQueryHandler(button))
 
-    if user["index"] < len(user["questions"]):
-        send_question(context.bot, chat_id)
-    else:
-        database.save_score(chat_id, name, user["score"])
-        user["active"] = False
+updater.start_polling()
+updater.idle()
