@@ -49,7 +49,6 @@ def button(update, context):
 
     # ================= START GAME =================
     if query.data == "start":
-        # ❌ kalau masih jalan
         if chat_id in user_data and user_data[chat_id].get("active"):
             query.message.reply_text("⚠️ Game masih berjalan!")
             return
@@ -77,10 +76,11 @@ def button(update, context):
     if ans == q["answer"]:
         user["score"] += 10
 
-        query.message.reply_text(
-            "JAWABAN BENAR ✅\n\n"
-            "Selamat kamu bertambah 10 Poin \n"
-            f"Total Poin kamu saat ini 👉 {user['score']}"
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text="JAWABAN BENAR ✅\n\n"
+                 "Selamat kamu bertambah 10 Poin \n"
+                 f"Total Poin kamu saat ini 👉 {user['score']}"
         )
 
     # ================= LANJUT =================
@@ -89,14 +89,9 @@ def button(update, context):
     if user["index"] < len(user["questions"]):
         send_question(context.bot, chat_id)
     else:
-        # simpan leaderboard
+        # simpan leaderboard tanpa notif
         database.save_score(chat_id, name, user["score"])
-
         user["active"] = False
-
-        query.message.reply_text(
-            f"🏆 Game selesai!\n\nTotal Poin kamu 👉 {user['score']}"
-        )
 
 # ================== LEADERBOARD ==================
 
