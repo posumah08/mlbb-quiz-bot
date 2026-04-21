@@ -1,143 +1,105 @@
-import os
-import random
-import json
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
-
-TOKEN = os.getenv("TOKEN")
-OWNER_ID = 6776834334
-
-DATA_FILE = "leaderboard.json"
-CHAT_FILE = "chats.json"
-
-questions = [
-    {"question": "Hero lifesteal tinggi?", "options": ["Alucard","Layla","Miya","Eudora"], "answer": 0},
-    {"question": "Ultimate Harith?", "options": ["Chrono Dash","Zaman Force","Black Shoes","Time Rift"], "answer": 2}
-]
+from config import TOKEN, OWNER_ID
+from questions import get_questions
+import database
 
 user_data = {}
 
-# load/save leaderboard
-def load_data():
-    try:
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
-
-# load/save chat id
-def load_chats():
-    try:
-        with open(CHAT_FILE, "r") as f:
-            return json.load(f)
-    except:
-        return []
-
-def save_chats(data):
-    with open(CHAT_FILE, "w") as f:
-        json.dump(data, f)
-
-leaderboard = load_data()
-chat_list = load_chats()
-
-# cek grup
-def is_group(update):
-    return update.effective_chat.type in ["group", "supergroup"]
+def is_admin(update, context):
+    admins = context.bot.get_chat_administrators(update.effective_chat.id)
+    return any(a.user.id == update.effective_user.id for a in admins)
 
 def start(update, context):
-    chat_id = str(update.effective_chat.id)
-
-    if not is_group(update):
-        update.message.reply_text("❌ Bot ini hanya bisa digunakan di GRUP!")
+    if update.effective_chat.type == "private":
+        update.message.reply_text("❌ Bot hanya untuk grup!")
         return
 
-    # simpan chat
-    if chat_id not in chat_list:
-        chat_list.append(chat_id)
-        save_chats(chat_list)
+    chat_id = str(update.effective_chat.id)
+    database.save_chat(chat_id)
 
-    keyboard = [[InlineKeyboardButton("🎮 Mulai Quiz", callback_data="start")]]
-    update.message.reply_text("🔥 QUIZ MLBB (GROUP MODE)", reply_markup=InlineKeyboardMarkup(keyboard))
+    update.message.reply_text("🔥 Quiz MLBB\nAdmin: /forcestart")
+
+def forcestart(update, context):
+    chat_id = str(update.effective_chat.id)
+
+    if not is_admin(update, context):
+        update.message.reply_text("❌ Admin only")
+        return
+
+    if chat_id in user_data and user_data[chat_id]["active"]:
+        update.message.reply_text("⚠️ Game masih jalan")
+        return
+
+    user_data[chat_id] = {
+        "index": 0,
+        "score": 0,
+        "active": True,
+        "questions": get_questions()
+    }
+
+    send_question(context.bot, chat_id)
+
+def send_question(bot, chat_id):
+    user = user_data[chat_id]
+    q = user["questions"][user["index"]]
+
+    keyboard = [[InlineKeyboardButton(opt, callback_data=f"ans_{i}")]
+                for i, opt in enumerate(q["options"])]
+
+    bot.send_message(chat_id=int(chat_id), text=q["question"], reply_markup=InlineKeyboardMarkup(keyboard))
 
 def button(update, context):
     query = update.callback_query
     query.answer()
 
     chat_id = str(query.message.chat.id)
-    name = query.from_user.first_name
 
-    if query.data == "start":
-        user_data[chat_id] = {
-            "index": 0,
-            "score": 0,
-            "questions": random.sample(questions, len(questions))
-        }
-        send_question(query)
+    if chat_id not in user_data or not user_data[chat_id]["active"]:
+        return
 
-    elif query.data.startswith("ans_"):
-        ans = int(query.data.split("_")[1])
-        user = user_data[chat_id]
-        q = user["questions"][user["index"]]
-
-        if ans == q["answer"]:
-            user["score"] += 1
-            query.message.reply_text(f"✅ {name} BENAR!")
-        else:
-            query.message.reply_text(f"❌ {name} SALAH!")
-
-        user["index"] += 1
-
-        if user["index"] < len(user["questions"]):
-            send_question(query)
-        else:
-            score = user["score"]
-
-            if chat_id not in leaderboard or leaderboard[chat_id]["score"] < score:
-                leaderboard[chat_id] = {"name": name, "score": score}
-                save_data(leaderboard)
-
-            query.message.reply_text(f"🏆 Selesai!\nSkor: {score}")
-
-def send_question(query):
-    chat_id = str(query.message.chat.id)
     user = user_data[chat_id]
+    ans = int(query.data.split("_")[1])
     q = user["questions"][user["index"]]
 
-    keyboard = [
-        [InlineKeyboardButton(opt, callback_data=f"ans_{i}")]
-        for i, opt in enumerate(q["options"])
-    ]
+    if ans == q["answer"]:
+        user["score"] += 1
 
-    query.message.reply_text(f"❓ {q['question']}", reply_markup=InlineKeyboardMarkup(keyboard))
+    user["index"] += 1
 
-# 🔥 BROADCAST
+    if user["index"] < len(user["questions"]):
+        send_question(context.bot, chat_id)
+    else:
+        database.save_score(chat_id, query.from_user.first_name, user["score"])
+        user["active"] = False
+        query.message.reply_text(f"🏆 Skor: {user['score']}")
+
+def leaderboard(update, context):
+    data = database.get_leaderboard()
+    text = "🏆 LEADERBOARD\n\n"
+
+    for i, (name, score) in enumerate(data, 1):
+        text += f"{i}. {name} - {score}\n"
+
+    update.message.reply_text(text)
+
 def broadcast(update, context):
     if update.effective_user.id != OWNER_ID:
         return
 
     msg = " ".join(context.args)
-    if not msg:
-        update.message.reply_text("Masukkan pesan!")
-        return
-
-    success = 0
-    for chat_id in chat_list:
+    for chat_id in database.get_chats():
         try:
             context.bot.send_message(chat_id=int(chat_id), text=msg)
-            success += 1
         except:
             pass
-
-    update.message.reply_text(f"✅ Broadcast terkirim ke {success} chat")
 
 updater = Updater(TOKEN, use_context=True)
 dp = updater.dispatcher
 
 dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CommandHandler("forcestart", forcestart))
+dp.add_handler(CommandHandler("leaderboard", leaderboard))
 dp.add_handler(CommandHandler("broadcast", broadcast))
 dp.add_handler(CallbackQueryHandler(button))
 
