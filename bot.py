@@ -16,15 +16,8 @@ def get_random_question():
 # ================== COMMAND ==================
 
 def start(update, context):
-    chat_id = update.effective_chat.id
-    message_id = update.message.message_id
+    chat_id = str(update.effective_chat.id)
     text = update.message.text
-
-    # hapus pesan /start
-    try:
-        context.bot.delete_message(chat_id=chat_id, message_id=message_id)
-    except:
-        pass
 
     if "@quizmlbb_bot" not in text:
         return
@@ -33,19 +26,25 @@ def start(update, context):
         update.message.reply_text("❌ Bot hanya untuk grup!")
         return
 
-    database.save_chat(str(chat_id))
+    database.save_chat(chat_id)
 
-    if str(chat_id) in user_data and user_data[str(chat_id)].get("active"):
-        context.bot.send_message(chat_id=chat_id, text="⚠️ Game masih berjalan!")
+    if chat_id in user_data and user_data[chat_id].get("active"):
+        context.bot.send_message(chat_id=int(chat_id), text="⚠️ Game masih berjalan!")
         return
 
     keyboard = [[InlineKeyboardButton("🎮 Mulai Quiz", callback_data="start")]]
 
-    context.bot.send_message(
-        chat_id=chat_id,
+    msg = context.bot.send_message(
+        chat_id=int(chat_id),
         text="Klik tombol untuk mulai!",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+    # simpan id menu bot
+    user_data[chat_id] = {
+        "menu_msg": msg.message_id,
+        "active": False
+    }
 
 # ================== GAME ==================
 
@@ -82,8 +81,12 @@ def button(update, context):
             query.answer("Game masih berjalan!", show_alert=True)
             return
 
+        # hapus menu bot sebelumnya
         try:
-            query.edit_message_reply_markup(reply_markup=None)
+            context.bot.delete_message(
+                chat_id=int(chat_id),
+                message_id=user_data[chat_id].get("menu_msg")
+            )
         except:
             pass
 
@@ -93,7 +96,6 @@ def button(update, context):
             "last_q_msg": None
         }
 
-        # langsung kirim soal
         send_question(context.bot, chat_id)
         return
 
@@ -110,7 +112,10 @@ def button(update, context):
 
     # hapus soal lama
     try:
-        context.bot.delete_message(chat_id=int(chat_id), message_id=user["last_q_msg"])
+        context.bot.delete_message(
+            chat_id=int(chat_id),
+            message_id=user["last_q_msg"]
+        )
     except:
         pass
 
