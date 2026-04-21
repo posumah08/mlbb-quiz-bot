@@ -13,13 +13,19 @@ user_data = {}
 def get_random_question():
     return random.choice(QUESTIONS)
 
+def valid_command(text):
+    if not text:
+        return True
+    text = text.lower()
+    return not ("@" in text and "@quizmlbb_bot" not in text)
+
 # ================== COMMAND ==================
 
 def start(update, context):
-    chat_id = str(update.effective_chat.id)
     text = update.message.text
+    chat_id = str(update.effective_chat.id)
 
-    if "@quizmlbb_bot" not in text:
+    if not valid_command(text):
         return
 
     if update.effective_chat.type == "private":
@@ -40,7 +46,6 @@ def start(update, context):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-    # simpan id menu bot
     user_data[chat_id] = {
         "menu_msg": msg.message_id,
         "active": False
@@ -49,7 +54,10 @@ def start(update, context):
 # ================== GAME ==================
 
 def send_question(bot, chat_id):
-    user = user_data[chat_id]
+    user = user_data.get(chat_id)
+    if not user:
+        return
+
     q = get_random_question()
     user["current_q"] = q
 
@@ -81,11 +89,11 @@ def button(update, context):
             query.answer("Game masih berjalan!", show_alert=True)
             return
 
-        # hapus menu bot sebelumnya
+        # hapus menu bot
         try:
             context.bot.delete_message(
                 chat_id=int(chat_id),
-                message_id=user_data[chat_id].get("menu_msg")
+                message_id=user_data.get(chat_id, {}).get("menu_msg")
             )
         except:
             pass
@@ -108,13 +116,16 @@ def button(update, context):
 
     user = user_data[chat_id]
     ans = int(query.data.split("_")[1])
-    q = user["current_q"]
+    q = user.get("current_q")
+
+    if not q:
+        return
 
     # hapus soal lama
     try:
         context.bot.delete_message(
             chat_id=int(chat_id),
-            message_id=user["last_q_msg"]
+            message_id=user.get("last_q_msg")
         )
     except:
         pass
@@ -130,7 +141,7 @@ def button(update, context):
             text=f"JAWABAN BENAR ✅\n+10 poin\nTotal Poin kamu 👉 {database.get_user_score(user_id)}"
         )
 
-        time.sleep(3)
+        time.sleep(2)
 
     send_question(context.bot, chat_id)
 
@@ -139,17 +150,25 @@ def button(update, context):
 def next_q(update, context):
     text = update.message.text
     chat_id = str(update.effective_chat.id)
+    message_id = update.message.message_id
 
-    if "@quizmlbb_bot" not in text:
+    if not valid_command(text):
         return
+
+    # hapus command /next
+    try:
+        context.bot.delete_message(chat_id=int(chat_id), message_id=message_id)
+    except:
+        pass
 
     if chat_id not in user_data or not user_data[chat_id].get("active"):
         return
 
+    # hapus soal lama
     try:
         context.bot.delete_message(
             chat_id=int(chat_id),
-            message_id=user_data[chat_id]["last_q_msg"]
+            message_id=user_data[chat_id].get("last_q_msg")
         )
     except:
         pass
@@ -159,43 +178,43 @@ def next_q(update, context):
 # ================== LEADERBOARD GLOBAL ==================
 
 def leaderboard(update, context):
-    text_cmd = update.message.text
+    text = update.message.text
 
-    if "@quizmlbb_bot" not in text_cmd:
+    if not valid_command(text):
         return
 
     data = database.get_global_leaderboard()
 
-    text = "🏆 GLOBAL LEADERBOARD\n\n"
+    text_out = "🏆 GLOBAL LEADERBOARD\n\n"
     for i, (name, score) in enumerate(data, 1):
-        text += f"{i}. {name} - {score}\n"
+        text_out += f"{i}. {name} - {score}\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text_out)
 
 # ================== TOP GRUP ==================
 
 def topgrup(update, context):
-    text_cmd = update.message.text
+    text = update.message.text
     chat_id = str(update.effective_chat.id)
 
-    if "@quizmlbb_bot" not in text_cmd:
+    if not valid_command(text):
         return
 
     data = database.get_group_leaderboard(chat_id)
 
-    text = "🏆 LEADERBOARD GRUP\n\n"
+    text_out = "🏆 LEADERBOARD GRUP\n\n"
     for i, (name, score) in enumerate(data, 1):
-        text += f"{i}. {name} - {score}\n"
+        text_out += f"{i}. {name} - {score}\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text_out)
 
 # ================== STATS USER ==================
 
 def stats(update, context):
-    text_cmd = update.message.text
+    text = update.message.text
     user_id = str(update.effective_user.id)
 
-    if "@quizmlbb_bot" not in text_cmd:
+    if not valid_command(text):
         return
 
     score = database.get_user_score(user_id)
@@ -204,15 +223,21 @@ def stats(update, context):
 
 # ================== RUN ==================
 
-updater = Updater(TOKEN, use_context=True)
-dp = updater.dispatcher
+def main():
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
 
-dp.add_handler(CommandHandler("start", start))
-dp.add_handler(CommandHandler("next", next_q))
-dp.add_handler(CommandHandler("leaderboard", leaderboard))
-dp.add_handler(CommandHandler("topgrup", topgrup))
-dp.add_handler(CommandHandler("stats", stats))
-dp.add_handler(CallbackQueryHandler(button))
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("next", next_q))
+    dp.add_handler(CommandHandler("leaderboard", leaderboard))
+    dp.add_handler(CommandHandler("topgrup", topgrup))
+    dp.add_handler(CommandHandler("stats", stats))
+    dp.add_handler(CallbackQueryHandler(button))
 
-updater.start_polling()
-updater.idle()
+    print("BOT RUNNING...")
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
