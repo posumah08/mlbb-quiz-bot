@@ -1,6 +1,6 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import os
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 
 TOKEN = os.getenv("TOKEN")
 
@@ -14,19 +14,19 @@ questions = [
 
 user_data = {}
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def start(update, context):
     keyboard = [[InlineKeyboardButton("🔥 Mulai Quiz", callback_data="start")]]
-    await update.message.reply_text("🎮 Quiz MLBB!", reply_markup=InlineKeyboardMarkup(keyboard))
+    update.message.reply_text("🎮 Quiz MLBB!", reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def button(update, context):
     query = update.callback_query
-    await query.answer()
+    query.answer()
 
     chat_id = query.message.chat.id
 
     if query.data == "start":
         user_data[chat_id] = {"index": 0, "score": 0}
-        await send_question(query)
+        send_question(query)
 
     elif query.data.startswith("ans_"):
         ans = int(query.data.split("_")[1])
@@ -35,18 +35,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if ans == q["answer"]:
             user["score"] += 1
-            await query.message.reply_text("✅ Benar!")
+            query.message.reply_text("✅ Benar!")
         else:
-            await query.message.reply_text("❌ Salah!")
+            query.message.reply_text("❌ Salah!")
 
         user["index"] += 1
 
         if user["index"] < len(questions):
-            await send_question(query)
+            send_question(query)
         else:
-            await query.message.reply_text(f"🏆 Skor kamu: {user['score']}")
+            query.message.reply_text(f"🏆 Skor: {user['score']}")
 
-async def send_question(query):
+def send_question(query):
     chat_id = query.message.chat.id
     user = user_data[chat_id]
     q = questions[user["index"]]
@@ -56,11 +56,13 @@ async def send_question(query):
         for i, opt in enumerate(q["options"])
     ]
 
-    await query.message.reply_text(q["question"], reply_markup=InlineKeyboardMarkup(keyboard))
+    query.message.reply_text(q["question"], reply_markup=InlineKeyboardMarkup(keyboard))
 
-app = ApplicationBuilder().token(TOKEN).build()
+updater = Updater(TOKEN, use_context=True)
+dp = updater.dispatcher
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(button))
+dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CallbackQueryHandler(button))
 
-app.run_polling()
+updater.start_polling()
+updater.idle()
