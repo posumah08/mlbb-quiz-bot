@@ -16,8 +16,15 @@ def get_random_question():
 # ================== COMMAND ==================
 
 def start(update, context):
+    chat_id = update.effective_chat.id
+    message_id = update.message.message_id
     text = update.message.text
-    chat_id = str(update.effective_chat.id)
+
+    # hapus pesan /start
+    try:
+        context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except:
+        pass
 
     if "@quizmlbb_bot" not in text:
         return
@@ -26,16 +33,17 @@ def start(update, context):
         update.message.reply_text("❌ Bot hanya untuk grup!")
         return
 
-    database.save_chat(chat_id)
+    database.save_chat(str(chat_id))
 
-    if chat_id in user_data and user_data[chat_id].get("active"):
-        update.message.reply_text("⚠️ Game masih berjalan!")
+    if str(chat_id) in user_data and user_data[str(chat_id)].get("active"):
+        context.bot.send_message(chat_id=chat_id, text="⚠️ Game masih berjalan!")
         return
 
     keyboard = [[InlineKeyboardButton("🎮 Mulai Quiz", callback_data="start")]]
 
-    update.message.reply_text(
-        "🔥 QUIZ MLBB (ENDLESS)\n\nKlik tombol untuk mulai!",
+    context.bot.send_message(
+        chat_id=chat_id,
+        text="Klik tombol untuk mulai!",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -85,7 +93,7 @@ def button(update, context):
             "last_q_msg": None
         }
 
-        query.message.reply_text("🔥 Quiz dimulai!")
+        # langsung kirim soal
         send_question(context.bot, chat_id)
         return
 
@@ -109,15 +117,12 @@ def button(update, context):
     # ================= JAWABAN =================
     if ans == q["answer"]:
 
-        # 🔥 simpan GLOBAL
         database.add_global_score(user_id, name, 10)
-
-        # 🔥 simpan GRUP
         database.add_group_score(chat_id, user_id, name, 10)
 
         context.bot.send_message(
             chat_id=int(chat_id),
-            text=f"JAWABAN BENAR ✅\n+10 poin\nTotal kamu 👉 {database.get_user_score(user_id)}"
+            text=f"JAWABAN BENAR ✅\n+10 poin\nTotal Poin kamu 👉 {database.get_user_score(user_id)}"
         )
 
         time.sleep(3)
@@ -136,7 +141,6 @@ def next_q(update, context):
     if chat_id not in user_data or not user_data[chat_id].get("active"):
         return
 
-    # hapus soal lama
     try:
         context.bot.delete_message(
             chat_id=int(chat_id),
@@ -151,6 +155,7 @@ def next_q(update, context):
 
 def leaderboard(update, context):
     text_cmd = update.message.text
+
     if "@quizmlbb_bot" not in text_cmd:
         return
 
@@ -190,7 +195,7 @@ def stats(update, context):
 
     score = database.get_user_score(user_id)
 
-    update.message.reply_text(f"📊 Total poin kamu: {score}")
+    update.message.reply_text(f"📊 Total Poin kamu: {score}")
 
 # ================== RUN ==================
 
