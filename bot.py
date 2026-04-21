@@ -5,20 +5,19 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 
 TOKEN = os.getenv("TOKEN")
+OWNER_ID = 123456789  # GANTI dengan ID Telegram kamu
 
 DATA_FILE = "leaderboard.json"
+CHAT_FILE = "chats.json"
 
 questions = [
     {"question": "Hero lifesteal tinggi?", "options": ["Alucard","Layla","Miya","Eudora"], "answer": 0},
-    {"question": "Ultimate Harith?", "options": ["Chrono Dash","Zaman Force","Black Shoes","Time Rift"], "answer": 2},
-    {"question": "Hero sniper MLBB?", "options": ["Layla","Tank","Fighter","Mage"], "answer": 0},
-    {"question": "Role Tigreal?", "options": ["Mage","Tank","Assassin","Marksman"], "answer": 1},
-    {"question": "Hero ninja MLBB?", "options": ["Hayabusa","Franco","Balmond","Clint"], "answer": 0}
+    {"question": "Ultimate Harith?", "options": ["Chrono Dash","Zaman Force","Black Shoes","Time Rift"], "answer": 2}
 ]
 
 user_data = {}
 
-# load leaderboard
+# load/save leaderboard
 def load_data():
     try:
         with open(DATA_FILE, "r") as f:
@@ -26,23 +25,48 @@ def load_data():
     except:
         return {}
 
-# save leaderboard
 def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
 
+# load/save chat id
+def load_chats():
+    try:
+        with open(CHAT_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_chats(data):
+    with open(CHAT_FILE, "w") as f:
+        json.dump(data, f)
+
 leaderboard = load_data()
+chat_list = load_chats()
+
+# cek grup
+def is_group(update):
+    return update.effective_chat.type in ["group", "supergroup"]
 
 def start(update, context):
+    chat_id = str(update.effective_chat.id)
+
+    if not is_group(update):
+        update.message.reply_text("❌ Bot ini hanya bisa digunakan di GRUP!")
+        return
+
+    # simpan chat
+    if chat_id not in chat_list:
+        chat_list.append(chat_id)
+        save_chats(chat_list)
+
     keyboard = [[InlineKeyboardButton("🎮 Mulai Quiz", callback_data="start")]]
-    update.message.reply_text(
-        "🔥 QUIZ MLBB\n\nKetik /leaderboard untuk lihat ranking",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    update.message.reply_text("🔥 QUIZ MLBB (GROUP MODE)", reply_markup=InlineKeyboardMarkup(keyboard))
 
 def button(update, context):
     query = update.callback_query
     query.answer()
+
     chat_id = str(query.message.chat.id)
     name = query.from_user.first_name
 
@@ -61,9 +85,9 @@ def button(update, context):
 
         if ans == q["answer"]:
             user["score"] += 1
-            query.message.reply_text("✅ Benar!")
+            query.message.reply_text(f"✅ {name} BENAR!")
         else:
-            query.message.reply_text("❌ Salah!")
+            query.message.reply_text(f"❌ {name} SALAH!")
 
         user["index"] += 1
 
@@ -72,16 +96,11 @@ def button(update, context):
         else:
             score = user["score"]
 
-            # simpan ke leaderboard
             if chat_id not in leaderboard or leaderboard[chat_id]["score"] < score:
                 leaderboard[chat_id] = {"name": name, "score": score}
                 save_data(leaderboard)
 
-            keyboard = [[InlineKeyboardButton("🔄 Main Lagi", callback_data="start")]]
-            query.message.reply_text(
-                f"🏆 Quiz selesai!\nSkor: {score}",
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
+            query.message.reply_text(f"🏆 Selesai!\nSkor: {score}")
 
 def send_question(query):
     chat_id = str(query.message.chat.id)
@@ -93,29 +112,33 @@ def send_question(query):
         for i, opt in enumerate(q["options"])
     ]
 
-    query.message.reply_text(
-        f"❓ {q['question']}\n\nSkor: {user['score']}",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    query.message.reply_text(f"❓ {q['question']}", reply_markup=InlineKeyboardMarkup(keyboard))
 
-def show_leaderboard(update, context):
-    if not leaderboard:
-        update.message.reply_text("Belum ada data 😢")
+# 🔥 BROADCAST
+def broadcast(update, context):
+    if update.effective_user.id != OWNER_ID:
         return
 
-    sorted_lb = sorted(leaderboard.values(), key=lambda x: x["score"], reverse=True)
+    msg = " ".join(context.args)
+    if not msg:
+        update.message.reply_text("Masukkan pesan!")
+        return
 
-    text = "🏆 LEADERBOARD TOP 10\n\n"
-    for i, user in enumerate(sorted_lb[:10], start=1):
-        text += f"{i}. {user['name']} - {user['score']}\n"
+    success = 0
+    for chat_id in chat_list:
+        try:
+            context.bot.send_message(chat_id=int(chat_id), text=msg)
+            success += 1
+        except:
+            pass
 
-    update.message.reply_text(text)
+    update.message.reply_text(f"✅ Broadcast terkirim ke {success} chat")
 
 updater = Updater(TOKEN, use_context=True)
 dp = updater.dispatcher
 
 dp.add_handler(CommandHandler("start", start))
-dp.add_handler(CommandHandler("leaderboard", show_leaderboard))
+dp.add_handler(CommandHandler("broadcast", broadcast))
 dp.add_handler(CallbackQueryHandler(button))
 
 updater.start_polling()
