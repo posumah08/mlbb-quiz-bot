@@ -59,9 +59,5 @@ QUESTIONS = [
     # Tambahan hingga 100 (variasi)
 ]
 
-# Auto nambah sampai 100 soal
-while len(QUESTIONS) < 100:
-    QUESTIONS.append(random.choice(QUESTIONS))
-
 def get_questions():
-    return random.sample(QUESTIONS, len(QUESTIONS))
+    return random.sample(QUESTIONS, len(QUESTIONS)) 
