@@ -39,20 +39,19 @@ def start(update, context):
 # ================== GAME ==================
 
 def send_question(bot, chat_id):
-    if chat_id not in user_data:
-        return
-
+    user = user_data[chat_id]
     q = get_random_question()
-    user_data[chat_id]["current_q"] = q
-    user_data[chat_id]["answered"] = False
+
+    user["current_q"] = q
+    user["answered"] = False
 
     msg = bot.send_photo(
         chat_id=int(chat_id),
-        photo=q["image"],
-        caption="❓ Tebak hero ini!\nReply jawabannya"
+        photo=open(q["image"], "rb"),
+        caption="❓ Tebak hero ini!"
     )
 
-    user_data[chat_id]["last_q_msg"] = msg.message_id
+    user["last_q_msg"] = msg.message_id
 
 # ================== JAWAB ==================
 
