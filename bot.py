@@ -20,6 +20,10 @@ def valid_command(text):
     text = text.lower()
     return not ("@" in text and "@quizmlbb_bot" not in text)
 
+def send_next_question(context):
+    chat_id = context.job.context
+    send_question(context.bot, chat_id)
+
 # ================== START ==================
 
 def start(update, context):
@@ -29,7 +33,6 @@ def start(update, context):
     if not valid_command(text):
         return
 
-    # kalau game masih jalan
     if chat_id in user_data and user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game masih berjalan!")
         return
@@ -41,7 +44,6 @@ def start(update, context):
         "answered": False
     }
 
-    # langsung kirim soal (tanpa teks)
     send_question(context.bot, chat_id)
 
 # ================== GAME ==================
@@ -70,11 +72,7 @@ def send_question(bot, chat_id):
 
     except Exception as e:
         print("ERROR GAMBAR:", e)
-
-        bot.send_message(
-            chat_id=int(chat_id),
-            text="❌ Gambar tidak ditemukan!"
-        )
+        bot.send_message(chat_id=int(chat_id), text="❌ Gambar tidak ditemukan!")
 
 # ================== JAWAB ==================
 
@@ -95,12 +93,10 @@ def answer(update, context):
     if not user.get("active"):
         return
 
-    # optional reply check
     if update.message.reply_to_message:
         if update.message.reply_to_message.message_id != user.get("last_q_msg"):
             return
 
-    # kalau sudah dijawab
     if user.get("answered"):
         return
 
@@ -110,7 +106,6 @@ def answer(update, context):
 
     correct = q["answer"].lower()
 
-    # ================= CEK =================
     if text == correct:
         user["answered"] = True
 
@@ -127,15 +122,14 @@ def answer(update, context):
             text=f"🔥 JAWABAN BENAR 🔥\nMMR +10\nTOTAL MMR KAMU 👉 {score}"
         )
 
-        # hapus soal lama
         try:
             last = user.get("last_q_msg")
             if last:
-        context.bot.delete_message(chat_id=int(chat_id), message_id=last)
+                context.bot.delete_message(chat_id=int(chat_id), message_id=last)
         except:
             pass
 
-        # ⏳ JEDA 3 DETIK → soal berikutnya
+        # ⏳ jeda 3 detik lalu soal baru
         context.job_queue.run_once(send_next_question, 3, context=chat_id)
 
 # ================== NEXT ==================
@@ -153,7 +147,6 @@ def next_q(update, context):
     if not user_data[chat_id].get("active"):
         return
 
-    # hapus soal lama
     try:
         last = user_data[chat_id].get("last_q_msg")
         if last:
