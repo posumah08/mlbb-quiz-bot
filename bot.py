@@ -27,6 +27,14 @@ def send_next_question(context):
 # ================= START ==================
 
 def start(update, context):
+    # 🔥 kalau bukan grup → kasih notif miring
+    if update.effective_chat.type == "private":
+        update.message.reply_text(
+            "_Bot hanya dapat dimainkan pada grup_",
+            parse_mode="Markdown"
+        )
+        return
+
     if not group_only(update):
         return
 
