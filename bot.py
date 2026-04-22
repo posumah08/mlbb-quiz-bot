@@ -141,13 +141,20 @@ def answer(update, context):
     if text == correct:
         user["answered"] = True
 
-       score = database.get_user_score(user_id) or 0
-       rank = get_rank(score)
+        # TAMBAH SCORE
+        try:
+            database.add_global_score(user_id, name, 10)
+            database.add_group_score(chat_id, user_id, name, 10)
+        except Exception as e:
+            print("DB ERROR:", e)
 
-       context.bot.send_message(
-           chat_id=int(chat_id),
-           text=f"🔥 JAWABAN BENAR 🔥\nMMR +10\nTOTAL MMR KAMU 👉 MMR{score}\nRANK : {rank}"
-       )
+        score = database.get_user_score(user_id) or 0
+        rank = get_rank(score)
+
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text=f"🔥 JAWABAN BENAR 🔥\nMMR +25\nTOTAL MMR KAMU 👉 MMR {score}\n🏆 RANK : {rank}"
+        )
 
         try:
             last = user.get("last_q_msg")
@@ -200,11 +207,14 @@ def stats(update, context):
     score = 0
     try:
         score = database.get_user_score(user_id) or 0
-rank = get_rank(score)
+    except:
+        pass
 
-update.message.reply_text(
-    f"Stats\nMMR kamu sekarang 👉 {score}\nRANK : {rank}"
-)
+    rank = get_rank(score)
+
+    update.message.reply_text(
+        f"📊 STATS\nMMR kamu 👉 MMR {score}\n🏆 RANK : {rank}"
+    )
 
 # ================= LEADERBOARD ==================
 
