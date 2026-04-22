@@ -9,7 +9,7 @@ user_data = {}
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ================= UTIL =================
+# ================= UTIL ==================
 
 def valid_command(text):
     if not text:
@@ -17,13 +17,19 @@ def valid_command(text):
     text = text.lower()
     return not ("@" in text and "@quizmlbb_bot" not in text)
 
+def group_only(update):
+    return update.effective_chat.type in ["group", "supergroup"]
+
 def send_next_question(context):
     chat_id = context.job.context
     send_question(context.bot, chat_id)
 
-# ================= START =================
+# ================= START ==================
 
 def start(update, context):
+    if not group_only(update):
+        return
+
     chat_id = str(update.effective_chat.id)
     text = update.message.text
 
@@ -45,7 +51,7 @@ def start(update, context):
 
     send_question(context.bot, chat_id)
 
-# ================= GAME =================
+# ================= GAME ==================
 
 def send_question(bot, chat_id):
     if chat_id not in user_data:
@@ -79,9 +85,12 @@ def send_question(bot, chat_id):
         print("ERROR GAMBAR:", e)
         bot.send_message(chat_id=int(chat_id), text="❌ Gambar tidak ditemukan!")
 
-# ================= JAWAB =================
+# ================= JAWAB ==================
 
 def answer(update, context):
+    if not group_only(update):
+        return
+
     if not update.message or not update.message.text:
         return
 
@@ -136,9 +145,12 @@ def answer(update, context):
 
         context.job_queue.run_once(send_next_question, 3, context=chat_id)
 
-# ================= NEXT =================
+# ================= NEXT ==================
 
 def next_q(update, context):
+    if not group_only(update):
+        return
+
     chat_id = str(update.effective_chat.id)
     text = update.message.text
 
@@ -160,9 +172,34 @@ def next_q(update, context):
 
     send_question(context.bot, chat_id)
 
-# ================= LEADERBOARD =================
+# ================= STATS ==================
+
+def stats(update, context):
+    if not group_only(update):
+        return
+
+    text = update.message.text
+    if not valid_command(text):
+        return
+
+    user_id = str(update.effective_user.id)
+
+    score = 0
+    try:
+        score = database.get_user_score(user_id)
+    except:
+        pass
+
+    update.message.reply_text(
+        f"Stats\nMMR kamu sekarang 👉 {score}\nRANK :"
+    )
+
+# ================= LEADERBOARD ==================
 
 def leaderboard(update, context):
+    if not group_only(update):
+        return
+
     data = database.get_global_leaderboard()
 
     text = "🏆 GLOBAL LEADERBOARD\n\n"
@@ -172,6 +209,9 @@ def leaderboard(update, context):
     update.message.reply_text(text)
 
 def topgrup(update, context):
+    if not group_only(update):
+        return
+
     chat_id = str(update.effective_chat.id)
     data = database.get_group_leaderboard(chat_id)
 
@@ -181,16 +221,17 @@ def topgrup(update, context):
 
     update.message.reply_text(text)
 
-# ================= RUN =================
+# ================= RUN ==================
 
 def main():
-    database.init_db()  # 🔥 PENTING
+    database.init_db()
 
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("next", next_q))
+    dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(CommandHandler("leaderboard", leaderboard))
     dp.add_handler(CommandHandler("topgrup", topgrup))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
