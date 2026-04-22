@@ -150,7 +150,7 @@ def answer(update, context):
 
         context.bot.send_message(
             chat_id=int(chat_id),
-            text=f"🔥 JAWABAN BENAR 🔥\nMMR +10\nTOTAL MMR KAMU 👉 {score}"
+            text=f"🔥 JAWABAN BENAR 🔥\nMMR +10\nTOTAL MMR KAMU 👉 {score} MMR\nRANK : "
         )
 
         try:
