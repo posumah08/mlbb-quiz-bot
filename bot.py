@@ -131,9 +131,12 @@ def answer(update, context):
         try:
             last = user.get("last_q_msg")
             if last:
-                context.bot.delete_message(chat_id=int(chat_id), message_id=last)
+        context.bot.delete_message(chat_id=int(chat_id), message_id=last)
         except:
             pass
+
+        # ⏳ JEDA 3 DETIK → soal berikutnya
+        context.job_queue.run_once(send_next_question, 3, context=chat_id)
 
 # ================== NEXT ==================
 
