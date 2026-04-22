@@ -2,6 +2,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from config import TOKEN
 from questions import QUESTIONS
+from rank import get_rank
 import database
 import random
 import os
