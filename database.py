@@ -6,24 +6,17 @@ import os
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise Exception("❌ DATABASE_URL tidak ditemukan! Pastikan sudah set di Railway Variables")
+    raise Exception("DATABASE_URL tidak ditemukan! Pastikan sudah set di Railway Variables")
 
 # ================= CONNECT =================
 
 def get_conn():
-    try:
-        return psycopg2.connect(DATABASE_URL)
-    except Exception as e:
-        print("❌ ERROR CONNECT DB:", e)
-        return None
+    return psycopg2.connect(DATABASE_URL)
 
 # ================= INIT =================
 
 def init_db():
     conn = get_conn()
-    if not conn:
-        return
-
     cur = conn.cursor()
 
     try:
@@ -46,19 +39,14 @@ def init_db():
         """)
 
         conn.commit()
-    except Exception as e:
-        print("❌ INIT DB ERROR:", e)
-
-    cur.close()
-    conn.close()
+    finally:
+        cur.close()
+        conn.close()
 
 # ================= GLOBAL =================
 
 def add_global_score(user_id, name, points):
     conn = get_conn()
-    if not conn:
-        return
-
     cur = conn.cursor()
 
     try:
@@ -70,36 +58,24 @@ def add_global_score(user_id, name, points):
         """, (user_id, name, points, points))
 
         conn.commit()
-    except Exception as e:
-        print("❌ GLOBAL SCORE ERROR:", e)
-
-    cur.close()
-    conn.close()
+    finally:
+        cur.close()
+        conn.close()
 
 def get_user_score(user_id):
     conn = get_conn()
-    if not conn:
-        return 0
-
     cur = conn.cursor()
 
     try:
         cur.execute("SELECT score FROM global_scores WHERE user_id = %s", (user_id,))
         result = cur.fetchone()
         return result[0] if result else 0
-    except Exception as e:
-        print("❌ GET USER SCORE ERROR:", e)
-        return 0
-
     finally:
         cur.close()
         conn.close()
 
 def get_global_leaderboard(limit=10):
     conn = get_conn()
-    if not conn:
-        return []
-
     cur = conn.cursor()
 
     try:
@@ -109,10 +85,6 @@ def get_global_leaderboard(limit=10):
         LIMIT %s
         """, (limit,))
         return cur.fetchall()
-    except Exception as e:
-        print("❌ GLOBAL LEADERBOARD ERROR:", e)
-        return []
-
     finally:
         cur.close()
         conn.close()
@@ -121,9 +93,6 @@ def get_global_leaderboard(limit=10):
 
 def add_group_score(chat_id, user_id, name, points):
     conn = get_conn()
-    if not conn:
-        return
-
     cur = conn.cursor()
 
     try:
@@ -135,17 +104,12 @@ def add_group_score(chat_id, user_id, name, points):
         """, (chat_id, user_id, name, points, points))
 
         conn.commit()
-    except Exception as e:
-        print("❌ GROUP SCORE ERROR:", e)
-
-    cur.close()
-    conn.close()
+    finally:
+        cur.close()
+        conn.close()
 
 def get_group_leaderboard(chat_id, limit=10):
     conn = get_conn()
-    if not conn:
-        return []
-
     cur = conn.cursor()
 
     try:
@@ -156,10 +120,6 @@ def get_group_leaderboard(chat_id, limit=10):
         LIMIT %s
         """, (chat_id, limit))
         return cur.fetchall()
-    except Exception as e:
-        print("❌ GROUP LEADERBOARD ERROR:", e)
-        return []
-
     finally:
         cur.close()
         conn.close()
