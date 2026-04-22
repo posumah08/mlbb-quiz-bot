@@ -29,7 +29,6 @@ def send_next_question(context):
 # ================= START ==================
 
 def start(update, context):
-    # ================= PRIVATE =================
     if update.effective_chat.type == "private":
 
         keyboard = [
@@ -44,7 +43,6 @@ def start(update, context):
         )
         return
 
-    # ================= GROUP =================
     if not group_only(update):
         return
 
@@ -100,7 +98,7 @@ def send_question(bot, chat_id):
         user["last_q_msg"] = msg.message_id
 
     except Exception as e:
-        print("ERROR GAMBAR:", e)
+        print("ERROR GAMBAR:", image_path, e)
         bot.send_message(chat_id=int(chat_id), text="❌ Gambar tidak ditemukan!")
 
 # ================= JAWAB ==================
@@ -141,7 +139,6 @@ def answer(update, context):
     if text == correct:
         user["answered"] = True
 
-        # TAMBAH SCORE
         try:
             database.add_global_score(user_id, name, 25)
             database.add_group_score(chat_id, user_id, name, 25)
@@ -153,7 +150,7 @@ def answer(update, context):
 
         context.bot.send_message(
             chat_id=int(chat_id),
-            text=f"🔥 JAWABAN BENAR 🔥\nMMR +25\nTOTAL MMR KAMU 👉 MMR {score}\n🏆 RANK : {rank}"
+            text=f"🔥 JAWABAN BENAR 🔥\nMMR +25\nTOTAL MMR 👉 {score}\n🏆 RANK : {rank}"
         )
 
         try:
@@ -213,7 +210,7 @@ def stats(update, context):
     rank = get_rank(score)
 
     update.message.reply_text(
-        f"📊 STATS\nMMR kamu 👉 MMR {score}\n🏆 RANK : {rank}"
+        f"📊 STATS\nMMR kamu 👉 {score}\n🏆 RANK : {rank}"
     )
 
 # ================= LEADERBOARD ==================
@@ -227,7 +224,7 @@ def leaderboard(update, context):
     text = "🏆 GLOBAL LEADERBOARD\n\n"
     for i, (name, score) in enumerate(data, 1):
         rank = get_rank(score)
-text += f"{i}. {name} - MMR {score} {rank}\n"
+        text += f"{i}. {name} - MMR {score} {rank}\n"
 
     update.message.reply_text(text)
 
@@ -240,7 +237,8 @@ def topgrup(update, context):
 
     text = "🏆 LEADERBOARD GRUP\n\n"
     for i, (name, score) in enumerate(data, 1):
-        text += f"{i}. {name} - {score}\n"
+        rank = get_rank(score)
+        text += f"{i}. {name} - MMR {score} {rank}\n"
 
     update.message.reply_text(text)
 
