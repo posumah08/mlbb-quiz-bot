@@ -226,7 +226,8 @@ def leaderboard(update, context):
 
     text = "🏆 GLOBAL LEADERBOARD\n\n"
     for i, (name, score) in enumerate(data, 1):
-        text += f"{i}. {name} - {score}\n"
+        rank = get_rank(score)
+text += f"{i}. {name} - MMR {score} ({rank})\n"
 
     update.message.reply_text(text)
 
