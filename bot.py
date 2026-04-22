@@ -143,8 +143,8 @@ def answer(update, context):
 
         # TAMBAH SCORE
         try:
-            database.add_global_score(user_id, name, 10)
-            database.add_group_score(chat_id, user_id, name, 10)
+            database.add_global_score(user_id, name, 25)
+            database.add_group_score(chat_id, user_id, name, 25)
         except Exception as e:
             print("DB ERROR:", e)
 
