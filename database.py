@@ -1,37 +1,72 @@
-import sqlite3
+import psycopg2
+import os
 
-conn = sqlite3.connect("data.db", check_same_thread=False)
-c = conn.cursor()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# tabel leaderboard
-c.execute("""
-CREATE TABLE IF NOT EXISTS leaderboard (
-    chat_id TEXT,
-    name TEXT,
-    score INTEGER
-)
-""")
+conn = psycopg2.connect(DATABASE_URL)
+cur = conn.cursor()
 
-# tabel chat
-c.execute("""
-CREATE TABLE IF NOT EXISTS chats (
-    chat_id TEXT
-)
-""")
+def init_db():
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS global_scores (
+        user_id TEXT PRIMARY KEY,
+        name TEXT,
+        score INT
+    )
+    """)
 
-conn.commit()
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS group_scores (
+        chat_id TEXT,
+        user_id TEXT,
+        name TEXT,
+        score INT,
+        PRIMARY KEY (chat_id, user_id)
+    )
+    """)
 
-def save_chat(chat_id):
-    c.execute("INSERT OR IGNORE INTO chats VALUES (?)", (chat_id,))
     conn.commit()
 
-def get_chats():
-    return [row[0] for row in c.execute("SELECT chat_id FROM chats")]
+# ================= GLOBAL =================
 
-def save_score(chat_id, name, score):
-    c.execute("DELETE FROM leaderboard WHERE chat_id=?", (chat_id,))
-    c.execute("INSERT INTO leaderboard VALUES (?, ?, ?)", (chat_id, name, score))
+def add_global_score(user_id, name, points):
+    cur.execute("""
+    INSERT INTO global_scores (user_id, name, score)
+    VALUES (%s, %s, %s)
+    ON CONFLICT (user_id)
+    DO UPDATE SET score = global_scores.score + %s
+    """, (user_id, name, points, points))
     conn.commit()
 
-def get_leaderboard():
-    return c.execute("SELECT name, score FROM leaderboard ORDER BY score DESC LIMIT 10").fetchall()
+def get_user_score(user_id):
+    cur.execute("SELECT score FROM global_scores WHERE user_id = %s", (user_id,))
+    result = cur.fetchone()
+    return result[0] if result else 0
+
+def get_global_leaderboard(limit=10):
+    cur.execute("""
+    SELECT name, score FROM global_scores
+    ORDER BY score DESC
+    LIMIT %s
+    """, (limit,))
+    return cur.fetchall()
+
+# ================= GROUP =================
+
+def add_group_score(chat_id, user_id, name, points):
+    cur.execute("""
+    INSERT INTO group_scores (chat_id, user_id, name, score)
+    VALUES (%s, %s, %s, %s)
+    ON CONFLICT (chat_id, user_id)
+    DO UPDATE SET score = group_scores.score + %s
+    """, (chat_id, user_id, name, points, points))
+    conn.commit()
+
+def get_group_leaderboard(chat_id, limit=10):
+    cur.execute("""
+    SELECT name, score FROM group_scores
+    WHERE chat_id = %s
+    ORDER BY score DESC
+    LIMIT %s
+    """, (chat_id, limit))
+    return cur.fetchall()
