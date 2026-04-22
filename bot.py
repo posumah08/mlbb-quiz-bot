@@ -11,9 +11,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ================== UTIL ==================
 
-def get_random_question():
-    return random.choice(QUESTIONS)
-
 def valid_command(text):
     if not text:
         return True
@@ -33,12 +30,16 @@ def start(update, context):
     if not valid_command(text):
         return
 
+    # kalau masih jalan
     if chat_id in user_data and user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game masih berjalan!")
         return
 
+    # 🔥 shuffle soal sekali (ANTI DUPLIKAT)
     user_data[chat_id] = {
         "active": True,
+        "questions": random.sample(QUESTIONS, len(QUESTIONS)),
+        "index": 0,
         "current_q": None,
         "last_q_msg": None,
         "answered": False
@@ -53,7 +54,14 @@ def send_question(bot, chat_id):
         return
 
     user = user_data[chat_id]
-    q = get_random_question()
+
+    # kalau habis → shuffle ulang
+    if user["index"] >= len(user["questions"]):
+        user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
+        user["index"] = 0
+
+    q = user["questions"][user["index"]]
+    user["index"] += 1
 
     user["current_q"] = q
     user["answered"] = False
@@ -93,6 +101,7 @@ def answer(update, context):
     if not user.get("active"):
         return
 
+    # optional reply check
     if update.message.reply_to_message:
         if update.message.reply_to_message.message_id != user.get("last_q_msg"):
             return
@@ -106,6 +115,7 @@ def answer(update, context):
 
     correct = q["answer"].lower()
 
+    # ================= CEK =================
     if text == correct:
         user["answered"] = True
 
@@ -122,6 +132,7 @@ def answer(update, context):
             text=f"🔥 JAWABAN BENAR 🔥\nMMR +10\nTOTAL MMR KAMU 👉 {score}"
         )
 
+        # hapus soal lama
         try:
             last = user.get("last_q_msg")
             if last:
@@ -129,7 +140,7 @@ def answer(update, context):
         except:
             pass
 
-        # ⏳ jeda 3 detik lalu soal baru
+        # ⏳ lanjut soal 3 detik
         context.job_queue.run_once(send_next_question, 3, context=chat_id)
 
 # ================== NEXT ==================
