@@ -1,4 +1,3 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from config import TOKEN
 from questions import QUESTIONS
@@ -28,14 +27,22 @@ def send_next_question(context):
 # ================= START ==================
 
 def start(update, context):
-    # 🔥 kalau bukan grup → kasih notif miring
+    # ================= PRIVATE =================
     if update.effective_chat.type == "private":
+
+        keyboard = [
+            [InlineKeyboardButton("👤 Dev", url="https://t.me/yasanyamagurai")],
+            [InlineKeyboardButton("➕ Tambahkan ke GRUP", url="https://t.me/quizmlbb_bot?startgroup=true")]
+        ]
+
         update.message.reply_text(
-            "_Bot hanya dapat dimainkan pada grup_",
-            parse_mode="Markdown"
+            "Halo Player, Selamat bergabung di QUIZ MLBB ID.\n"
+            "Tambahkan Bot ini di GRUP TELEGRAM untuk Mulai Permainan.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
+    # ================= GROUP =================
     if not group_only(update):
         return
 
