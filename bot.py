@@ -2,7 +2,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from config import TOKEN
 from questions import QUESTIONS
-from rank import get_rank
+from rank import get_rank, get_rank_emoji
 import database
 import random
 import os
@@ -147,10 +147,12 @@ def answer(update, context):
 
         score = database.get_user_score(user_id) or 0
         rank = get_rank(score)
+        emoji = get_rank_emoji(rank)
 
         context.bot.send_message(
             chat_id=int(chat_id),
-            text=f"🔥 JAWABAN BENAR 🔥\nMMR +25\nTOTAL MMR 👉 {score}\n🏆 RANK : {rank}"
+            text=f"🔥 JAWABAN BENAR 🔥\nMMR +25\nTOTAL MMR 👉 MMR {score}\n🏆 RANK : {emoji} {rank}",
+            parse_mode="HTML"
         )
 
         try:
@@ -208,9 +210,11 @@ def stats(update, context):
         pass
 
     rank = get_rank(score)
+    emoji = get_rank_emoji(rank)
 
     update.message.reply_text(
-        f"📊 STATS\nMMR kamu 👉 {score}\n🏆 RANK : {rank}"
+        f"📊 STATS\nMMR kamu 👉 MMR {score}\n🏆 RANK : {emoji} {rank}",
+        parse_mode="HTML"
     )
 
 # ================= LEADERBOARD ==================
@@ -224,9 +228,10 @@ def leaderboard(update, context):
     text = "🏆 GLOBAL LEADERBOARD\n\n"
     for i, (name, score) in enumerate(data, 1):
         rank = get_rank(score)
-        text += f"{i}. {name} - MMR {score} {rank}\n"
+        emoji = get_rank_emoji(rank)
+        text += f"{i}. {name} - MMR {score} {emoji} {rank}\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 def topgrup(update, context):
     if not group_only(update):
@@ -238,9 +243,10 @@ def topgrup(update, context):
     text = "🏆 LEADERBOARD GRUP\n\n"
     for i, (name, score) in enumerate(data, 1):
         rank = get_rank(score)
-        text += f"{i}. {name} - MMR {score} {rank}\n"
+        emoji = get_rank_emoji(rank)
+        text += f"{i}. {name} - MMR {score} {emoji} {rank}\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 # ================= RUN ==================
 
