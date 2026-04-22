@@ -46,7 +46,7 @@ QUESTIONS = [
     {"image": "images/Sun.webp", "answer": "Sun"},
     {"image": "images/Tigreal.webp", "answer": "Tigreal"},
     {"image": "images/Vexana.webp", "answer": "Vexana"},
-    {"image": "images/Yi Sun-Shin.webp", "answer": "Yi Sun-Shin"},
+    {"image": "images/Yi Sun Shin.webp", "answer": "Yi Sun-Shin"},
     {"image": "images/Zhask.webp", "answer": "Zhask"},
     {"image": "images/Zilong.webp", "answer": "Zilong"},
 ]
