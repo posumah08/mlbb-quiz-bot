@@ -141,18 +141,13 @@ def answer(update, context):
     if text == correct:
         user["answered"] = True
 
-        score = 0
-        try:
-            database.add_global_score(user_id, name, 10)
-            database.add_group_score(chat_id, user_id, name, 10)
-            score = database.get_user_score(user_id) or 0
-        except Exception as e:
-            print("DB ERROR:", e)
+       score = database.get_user_score(user_id) or 0
+       rank = get_rank(score)
 
-        context.bot.send_message(
-            chat_id=int(chat_id),
-            text=f"🔥 JAWABAN BENAR 🔥\nMMR +10\nTOTAL MMR KAMU 👉 {score} MMR\nRANK : "
-        )
+       context.bot.send_message(
+           chat_id=int(chat_id),
+           text=f"🔥 JAWABAN BENAR 🔥\nMMR +10\nTOTAL MMR KAMU 👉 MMR{score}\nRANK : {rank}"
+       )
 
         try:
             last = user.get("last_q_msg")
