@@ -199,13 +199,12 @@ def stats(update, context):
 
     score = 0
     try:
-        score = database.get_user_score(user_id)
-    except:
-        pass
+        score = database.get_user_score(user_id) or 0
+rank = get_rank(score)
 
-    update.message.reply_text(
-        f"Stats\nMMR kamu sekarang 👉 {score}\nRANK :"
-    )
+update.message.reply_text(
+    f"Stats\nMMR kamu sekarang 👉 {score}\nRANK : {rank}"
+)
 
 # ================= LEADERBOARD ==================
 
