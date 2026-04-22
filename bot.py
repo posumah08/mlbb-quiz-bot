@@ -151,7 +151,7 @@ def answer(update, context):
 
         context.bot.send_message(
             chat_id=int(chat_id),
-            text=f"🔥 JAWABAN BENAR 🔥\nMMR +25\nTOTAL MMR 👉 MMR {score}\n🏆 RANK : {emoji} {rank}",
+            text=f"🔥 JAWABAN BENAR 🔥\nMMR +25\nTOTAL MMR {score}\n🏆 RANK : {emoji} {rank}",
             parse_mode="HTML"
         )
 
@@ -213,7 +213,7 @@ def stats(update, context):
     emoji = get_rank_emoji(rank)
 
     update.message.reply_text(
-        f"📊 STATS\nMMR kamu 👉 MMR {score}\n🏆 RANK : {emoji} {rank}",
+        f"📊 STATS\nMMR {score}\n🏆 RANK : {emoji} {rank}",
         parse_mode="HTML"
     )
 
