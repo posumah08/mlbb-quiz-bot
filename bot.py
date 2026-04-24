@@ -1,8 +1,9 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from config import TOKEN
-from questions import QUESTIONS
-from rank import get_rank, get_rank_emoji
+from question_hero import QUESTIONS as HERO_QUESTIONS
+from question_spell import QUESTIONS as SPELL_QUESTIONS
+from rank import get_rank
 import database
 import random
 import os
@@ -32,8 +33,8 @@ def start(update, context):
     if update.effective_chat.type == "private":
 
         keyboard = [
-            [InlineKeyboardButton("👤 Dev", url="https://t.me/yasanyamagurai")],
-            [InlineKeyboardButton("➕ Tambahkan ke GRUP", url="https://t.me/quizmlbb_bot?startgroup=true")]
+            [InlineKeyboardButton("Dev", url="https://t.me/yasanyamagurai")],
+            [InlineKeyboardButton("Tambahkan ke GRUP", url="https://t.me/quizmlbb_bot?startgroup=true")]
         ]
 
         update.message.reply_text(
@@ -53,12 +54,15 @@ def start(update, context):
         return
 
     if chat_id in user_data and user_data[chat_id].get("active"):
-        update.message.reply_text("⚠️ Game masih berjalan!")
+        update.message.reply_text("Game masih berjalan!")
         return
+
+    # 🔥 gabung hero + spell
+    all_questions = HERO_QUESTIONS + SPELL_QUESTIONS
 
     user_data[chat_id] = {
         "active": True,
-        "questions": random.sample(QUESTIONS, len(QUESTIONS)),
+        "questions": random.sample(all_questions, len(all_questions)),
         "index": 0,
         "current_q": None,
         "last_q_msg": None,
@@ -76,7 +80,8 @@ def send_question(bot, chat_id):
     user = user_data[chat_id]
 
     if user["index"] >= len(user["questions"]):
-        user["questions"] = random.sample(QUESTIONS, len(QUESTIONS))
+        all_questions = HERO_QUESTIONS + SPELL_QUESTIONS
+        user["questions"] = random.sample(all_questions, len(all_questions))
         user["index"] = 0
 
     q = user["questions"][user["index"]]
@@ -87,10 +92,15 @@ def send_question(bot, chat_id):
 
     image_path = os.path.join(BASE_DIR, q["image"])
 
-    # 🔥 CEK FILE DULU (ANTI ERROR)
+    # 🔥 beda caption
+    if "spell" in q["image"].lower():
+        caption = "❓ Tebak spell ini!"
+    else:
+        caption = "❓ Tebak hero ini!"
+
     if not os.path.exists(image_path):
         print("Gambar tidak ditemukan:", image_path)
-        bot.send_message(chat_id=int(chat_id), text="❌ Gambar tidak ditemukan!")
+        bot.send_message(chat_id=int(chat_id), text="Gambar tidak ditemukan!")
         return
 
     try:
@@ -98,14 +108,14 @@ def send_question(bot, chat_id):
             msg = bot.send_photo(
                 chat_id=int(chat_id),
                 photo=img,
-                caption="❓ Tebak hero ini!"
+                caption=caption
             )
 
         user["last_q_msg"] = msg.message_id
 
     except Exception as e:
         print("ERROR GAMBAR:", image_path, e)
-        bot.send_message(chat_id=int(chat_id), text="❌ Gagal kirim gambar!")
+        bot.send_message(chat_id=int(chat_id), text="Gagal kirim gambar!")
 
 # ================= JAWAB ==================
 
@@ -146,7 +156,7 @@ def answer(update, context):
 
     correct = q["answer"].lower()
 
-    # 🔥 FLEXIBLE MATCH (SPASI BEBAS)
+    # 🔥 flexible match
     if text.replace(" ", "") == correct.replace(" ", ""):
         user["answered"] = True
 
@@ -158,21 +168,18 @@ def answer(update, context):
 
         score = database.get_user_score(user_id) or 0
         rank = get_rank(score)
-        emoji = get_rank_emoji(rank)
 
-        # 🔥 PESAN KEREN
+        # 🔥 pakai emoji biasa
         context.bot.send_message(
             chat_id=int(chat_id),
             text=(
-                f"🎉 <b>{display_name}</b> menjawab dengan benar!\n\n"
+                f"🎉 {display_name} menjawab dengan benar!\n\n"
                 f"🔥 +25 MMR\n"
                 f"📊 TOTAL MMR: {score}\n"
-                f"🏆 RANK: {emoji} {rank}"
-            ),
-            parse_mode="HTML"
+                f"🏆 RANK: {rank}"
+            )
         )
 
-        # hapus soal sebelumnya
         try:
             last = user.get("last_q_msg")
             if last:
@@ -209,63 +216,6 @@ def next_q(update, context):
 
     send_question(context.bot, chat_id)
 
-# ================= STATS ==================
-
-def stats(update, context):
-    if not group_only(update):
-        return
-
-    text = update.message.text
-    if not valid_command(text):
-        return
-
-    user_id = str(update.effective_user.id)
-
-    score = 0
-    try:
-        score = database.get_user_score(user_id) or 0
-    except:
-        pass
-
-    rank = get_rank(score)
-    emoji = get_rank_emoji(rank)
-
-    update.message.reply_text(
-        f"📊 STATS\nMMR {score}\n🏆 RANK : {emoji} {rank}",
-        parse_mode="HTML"
-    )
-
-# ================= LEADERBOARD ==================
-
-def leaderboard(update, context):
-    if not group_only(update):
-        return
-
-    data = database.get_global_leaderboard()
-
-    text = "🏆 GLOBAL LEADERBOARD\n\n"
-    for i, (name, score) in enumerate(data, 1):
-        rank = get_rank(score)
-        emoji = get_rank_emoji(rank)
-        text += f"{i}. {name} - MMR {score} {emoji} {rank}\n"
-
-    update.message.reply_text(text, parse_mode="HTML")
-
-def topgrup(update, context):
-    if not group_only(update):
-        return
-
-    chat_id = str(update.effective_chat.id)
-    data = database.get_group_leaderboard(chat_id)
-
-    text = "🏆 LEADERBOARD GRUP\n\n"
-    for i, (name, score) in enumerate(data, 1):
-        rank = get_rank(score)
-        emoji = get_rank_emoji(rank)
-        text += f"{i}. {name} - MMR {score} {emoji} {rank}\n"
-
-    update.message.reply_text(text, parse_mode="HTML")
-
 # ================= RUN ==================
 
 def main():
@@ -276,9 +226,6 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("next", next_q))
-    dp.add_handler(CommandHandler("stats", stats))
-    dp.add_handler(CommandHandler("leaderboard", leaderboard))
-    dp.add_handler(CommandHandler("topgrup", topgrup))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
     print("BOT RUNNING...")
