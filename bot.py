@@ -156,7 +156,7 @@ def answer(update, context):
             print("DB ERROR:", e)
 
         score = database.get_user_score(user_id) or 0
-        rank = get_rank(score)
+        rank_name = get_rank(score)
 
         context.bot.send_message(
             chat_id=int(chat_id),
@@ -164,7 +164,7 @@ def answer(update, context):
                 f"🎉 {display_name} menjawab dengan benar!\n\n"
                 f"🔥 +25 MMR\n"
                 f"📊 TOTAL MMR: {score}\n"
-                f"🏆 RANK: {rank}"
+                f"🏆 RANK: {rank_name}"
             )
         )
 
@@ -192,11 +192,10 @@ def next_q(update, context):
     user = user_data[chat_id]
 
     if not user.get("answered") and user.get("current_q"):
-        answer = user["current_q"]["answer"]
-
+        ans = user["current_q"]["answer"]
         context.bot.send_message(
             chat_id=int(chat_id),
-            text=f"💡 Jawaban: {answer.title()}"
+            text=f"💡 Jawaban: {ans.title()}"
         )
 
     try:
@@ -254,12 +253,14 @@ def stats(update, context):
     user_id = str(update.effective_user.id)
 
     score = database.get_user_score(user_id) or 0
-    rank = get_rank(score)
+    rank_name = get_rank(score)
+    global_rank = database.get_global_rank(user_id)
 
     update.message.reply_text(
-        f"📊 Stats\n"
-        f"MMR kamu sekarang 👉 {score}\n"
-        f"RANK : {rank}"
+        f"📊 Stats\n\n"
+        f"🔥MMR kamu sekarang 👉 {score}\n"
+        f"🏆RANK : {rank_name}\n"
+        f"🌍GLOBAL RANK : #{global_rank if global_rank else '-'}\n"
     )
 
 # ================= RUN ==================
