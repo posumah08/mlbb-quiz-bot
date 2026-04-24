@@ -254,11 +254,12 @@ def stats(update, context):
     user_id = str(update.effective_user.id)
 
     score = database.get_user_score(user_id) or 0
+    rank = get_rank(score)
 
     update.message.reply_text(
-        f"🔥 Stats\n"
-        f""📊 MMR kamu sekarang 👉 {score}\n"
-        f"🏆 RANK: {rank}"
+        f"📊 Stats\n"
+        f"MMR kamu sekarang 👉 {score}\n"
+        f"RANK : {rank}"
     )
 
 # ================= RUN ==================
