@@ -3,7 +3,6 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from config import TOKEN
 from question_hero import QUESTIONS as HERO_QUESTIONS
 from question_spell import QUESTIONS as SPELL_QUESTIONS
-from question_item import QUESTIONS as ITEM_QUESTIONS
 from rank import get_rank
 import database
 import random
@@ -58,8 +57,8 @@ def start(update, context):
         update.message.reply_text("Game masih berjalan!")
         return
 
-    # 🔥 gabung semua soal
-    all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS
+    # 🔥 gabung hero + spell
+    all_questions = HERO_QUESTIONS + SPELL_QUESTIONS
 
     user_data[chat_id] = {
         "active": True,
@@ -81,7 +80,7 @@ def send_question(bot, chat_id):
     user = user_data[chat_id]
 
     if user["index"] >= len(user["questions"]):
-        all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS
+        all_questions = HERO_QUESTIONS + SPELL_QUESTIONS
         user["questions"] = random.sample(all_questions, len(all_questions))
         user["index"] = 0
 
@@ -93,17 +92,16 @@ def send_question(bot, chat_id):
 
     image_path = os.path.join(BASE_DIR, *q["image"].split("/"))
 
+    # 🔥 DEBUG (buat tau gambar mana error)
     print("=== DEBUG GAMBAR ===")
     print("Soal:", q)
     print("Path:", image_path)
     print("Ada file?", os.path.exists(image_path))
     print("====================")
 
-    # 🔥 caption otomatis
+    # 🔥 caption beda
     if "spell" in q["image"].lower():
         caption = "❓ Tebak spell ini!"
-    elif "item" in q["image"].lower():
-        caption = "❓ Tebak item ini!"
     else:
         caption = "❓ Tebak hero ini!"
 
@@ -165,6 +163,7 @@ def answer(update, context):
 
     correct = q["answer"].lower()
 
+    # 🔥 flexible match
     if text.replace(" ", "") == correct.replace(" ", ""):
         user["answered"] = True
 
@@ -187,6 +186,7 @@ def answer(update, context):
             )
         )
 
+        # hapus soal lama
         try:
             last = user.get("last_q_msg")
             if last:
@@ -208,25 +208,14 @@ def next_q(update, context):
     if not valid_command(text):
         return
 
-    # 🔥 notif kalau belum mulai
-    if chat_id not in user_data or not user_data[chat_id].get("active"):
-        update.message.reply_text("⚠️ Game belum dimulai!")
+    if chat_id not in user_data:
         return
 
-    user = user_data[chat_id]
+    if not user_data[chat_id].get("active"):
+        return
 
-    # 🔥 kasih jawaban kalau belum dijawab
-    if not user.get("answered") and user.get("current_q"):
-        answer = user["current_q"]["answer"]
-
-        context.bot.send_message(
-            chat_id=int(chat_id),
-            text=f"💡 Jawaban: {answer.title()}"
-        )
-
-    # hapus soal lama
     try:
-        last = user.get("last_q_msg")
+        last = user_data[chat_id].get("last_q_msg")
         if last:
             context.bot.delete_message(chat_id=int(chat_id), message_id=last)
     except:
