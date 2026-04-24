@@ -58,7 +58,6 @@ def start(update, context):
         update.message.reply_text("Game masih berjalan!")
         return
 
-    # 🔥 gabung semua soal
     all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS
 
     user_data[chat_id] = {
@@ -93,13 +92,6 @@ def send_question(bot, chat_id):
 
     image_path = os.path.join(BASE_DIR, *q["image"].split("/"))
 
-    print("=== DEBUG GAMBAR ===")
-    print("Soal:", q)
-    print("Path:", image_path)
-    print("Ada file?", os.path.exists(image_path))
-    print("====================")
-
-    # 🔥 caption otomatis
     if "spell" in q["image"].lower():
         caption = "❓ Tebak spell ini!"
     elif "item" in q["image"].lower():
@@ -108,7 +100,6 @@ def send_question(bot, chat_id):
         caption = "❓ Tebak hero ini!"
 
     if not os.path.exists(image_path):
-        print("❌ Gambar tidak ditemukan:", image_path)
         bot.send_message(chat_id=int(chat_id), text="Gambar tidak ditemukan!")
         return
 
@@ -208,14 +199,12 @@ def next_q(update, context):
     if not valid_command(text):
         return
 
-    # 🔥 notif kalau belum mulai
     if chat_id not in user_data or not user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game belum dimulai!")
         return
 
     user = user_data[chat_id]
 
-    # 🔥 kasih jawaban kalau belum dijawab
     if not user.get("answered") and user.get("current_q"):
         answer = user["current_q"]["answer"]
 
@@ -224,7 +213,6 @@ def next_q(update, context):
             text=f"💡 Jawaban: {answer.title()}"
         )
 
-    # hapus soal lama
     try:
         last = user.get("last_q_msg")
         if last:
@@ -233,6 +221,25 @@ def next_q(update, context):
         pass
 
     send_question(context.bot, chat_id)
+
+# ================= LEADERBOARD ==================
+
+def leaderboard(update, context):
+    if not group_only(update):
+        return
+
+    data = database.get_global_leaderboard()
+
+    if not data:
+        update.message.reply_text("Belum ada data leaderboard.")
+        return
+
+    text = "🏆 LEADERBOARD GLOBAL 🏆\n\n"
+
+    for i, (name, score) in enumerate(data, start=1):
+        text += f"{i}. {name} — {score} MMR\n"
+
+    update.message.reply_text(text)
 
 # ================= RUN ==================
 
@@ -244,6 +251,7 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("next", next_q))
+    dp.add_handler(CommandHandler("leaderboard", leaderboard))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
     print("BOT RUNNING...")
