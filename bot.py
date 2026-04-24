@@ -57,7 +57,6 @@ def start(update, context):
         update.message.reply_text("Game masih berjalan!")
         return
 
-    # 🔥 gabung hero + spell
     all_questions = HERO_QUESTIONS + SPELL_QUESTIONS
 
     user_data[chat_id] = {
@@ -92,14 +91,12 @@ def send_question(bot, chat_id):
 
     image_path = os.path.join(BASE_DIR, *q["image"].split("/"))
 
-    # 🔥 DEBUG (buat tau gambar mana error)
     print("=== DEBUG GAMBAR ===")
     print("Soal:", q)
     print("Path:", image_path)
     print("Ada file?", os.path.exists(image_path))
     print("====================")
 
-    # 🔥 caption beda
     if "spell" in q["image"].lower():
         caption = "❓ Tebak spell ini!"
     else:
@@ -163,7 +160,6 @@ def answer(update, context):
 
     correct = q["answer"].lower()
 
-    # 🔥 flexible match
     if text.replace(" ", "") == correct.replace(" ", ""):
         user["answered"] = True
 
@@ -186,7 +182,6 @@ def answer(update, context):
             )
         )
 
-        # hapus soal lama
         try:
             last = user.get("last_q_msg")
             if last:
@@ -208,10 +203,9 @@ def next_q(update, context):
     if not valid_command(text):
         return
 
-    if chat_id not in user_data:
-        return
-
-    if not user_data[chat_id].get("active"):
+    # 🔥 NOTIF TAMBAHAN
+    if chat_id not in user_data or not user_data[chat_id].get("active"):
+        update.message.reply_text("⚠️ Game belum dimulai!")
         return
 
     try:
