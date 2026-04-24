@@ -15,12 +15,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ================= UTIL ==================
 
-def valid_command(text):
-    if not text:
-        return True
-    text = text.lower()
-    return not ("@" in text and "@quizmlbb_bot" not in text)
-
 def group_only(update):
     return update.effective_chat.type in ["group", "supergroup"]
 
@@ -49,10 +43,6 @@ def start(update, context):
         return
 
     chat_id = str(update.effective_chat.id)
-    text = update.message.text
-
-    if not valid_command(text):
-        return
 
     if chat_id in user_data and user_data[chat_id].get("active"):
         update.message.reply_text("Game masih berjalan!")
@@ -194,10 +184,6 @@ def next_q(update, context):
         return
 
     chat_id = str(update.effective_chat.id)
-    text = update.message.text
-
-    if not valid_command(text):
-        return
 
     if chat_id not in user_data or not user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game belum dimulai!")
@@ -222,7 +208,7 @@ def next_q(update, context):
 
     send_question(context.bot, chat_id)
 
-# ================= LEADERBOARD ==================
+# ================= LEADERBOARD GLOBAL ==================
 
 def leaderboard(update, context):
     if not group_only(update):
@@ -241,6 +227,40 @@ def leaderboard(update, context):
 
     update.message.reply_text(text)
 
+# ================= LEADERBOARD GRUP ==================
+
+def topgrup(update, context):
+    if not group_only(update):
+        return
+
+    chat_id = str(update.effective_chat.id)
+
+    data = database.get_group_leaderboard(chat_id)
+
+    if not data:
+        update.message.reply_text("Belum ada leaderboard di grup ini.")
+        return
+
+    text = "🏆 LEADERBOARD GRUP 🏆\n\n"
+
+    for i, (name, score) in enumerate(data, start=1):
+        text += f"{i}. {name} — {score} MMR\n"
+
+    update.message.reply_text(text)
+
+# ================= STATS ==================
+
+def stats(update, context):
+    user_id = str(update.effective_user.id)
+
+    score = database.get_user_score(user_id) or 0
+
+    update.message.reply_text(
+        f"🔥 Stats\n"
+        f""📊 MMR kamu sekarang 👉 {score}\n"
+        f"🏆 RANK: {rank}"
+    )
+
 # ================= RUN ==================
 
 def main():
@@ -252,6 +272,8 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("next", next_q))
     dp.add_handler(CommandHandler("leaderboard", leaderboard))
+    dp.add_handler(CommandHandler("topgrup", topgrup))
+    dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
     print("BOT RUNNING...")
