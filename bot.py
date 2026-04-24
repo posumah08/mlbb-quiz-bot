@@ -87,6 +87,12 @@ def send_question(bot, chat_id):
 
     image_path = os.path.join(BASE_DIR, q["image"])
 
+    # 🔥 CEK FILE DULU (ANTI ERROR)
+    if not os.path.exists(image_path):
+        print("Gambar tidak ditemukan:", image_path)
+        bot.send_message(chat_id=int(chat_id), text="❌ Gambar tidak ditemukan!")
+        return
+
     try:
         with open(image_path, "rb") as img:
             msg = bot.send_photo(
@@ -99,7 +105,7 @@ def send_question(bot, chat_id):
 
     except Exception as e:
         print("ERROR GAMBAR:", image_path, e)
-        bot.send_message(chat_id=int(chat_id), text="❌ Gambar tidak ditemukan!")
+        bot.send_message(chat_id=int(chat_id), text="❌ Gagal kirim gambar!")
 
 # ================= JAWAB ==================
 
@@ -112,7 +118,11 @@ def answer(update, context):
 
     chat_id = str(update.effective_chat.id)
     user_id = str(update.effective_user.id)
+
     name = update.effective_user.first_name
+    username = update.effective_user.username
+    display_name = f"@{username}" if username else name
+
     text = update.message.text.lower().strip()
 
     if chat_id not in user_data:
@@ -136,7 +146,8 @@ def answer(update, context):
 
     correct = q["answer"].lower()
 
-    if text == correct:
+    # 🔥 FLEXIBLE MATCH (SPASI BEBAS)
+    if text.replace(" ", "") == correct.replace(" ", ""):
         user["answered"] = True
 
         try:
@@ -149,12 +160,19 @@ def answer(update, context):
         rank = get_rank(score)
         emoji = get_rank_emoji(rank)
 
+        # 🔥 PESAN KEREN
         context.bot.send_message(
             chat_id=int(chat_id),
-            text=f"🔥 JAWABAN BENAR 🔥\nMMR +25\nTOTAL MMR {score}\n🏆 RANK : {emoji} {rank}",
+            text=(
+                f"🎉 <b>{display_name}</b> menjawab dengan benar!\n\n"
+                f"🔥 +25 MMR\n"
+                f"📊 TOTAL MMR: {score}\n"
+                f"🏆 RANK: {emoji} {rank}"
+            ),
             parse_mode="HTML"
         )
 
+        # hapus soal sebelumnya
         try:
             last = user.get("last_q_msg")
             if last:
