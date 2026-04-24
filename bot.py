@@ -3,6 +3,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from config import TOKEN
 from question_hero import QUESTIONS as HERO_QUESTIONS
 from question_spell import QUESTIONS as SPELL_QUESTIONS
+from question_item import QUESTIONS as ITEM_QUESTIONS
 from rank import get_rank
 import database
 import random
@@ -57,7 +58,8 @@ def start(update, context):
         update.message.reply_text("Game masih berjalan!")
         return
 
-    all_questions = HERO_QUESTIONS + SPELL_QUESTIONS
+    # 🔥 gabung semua soal
+    all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS
 
     user_data[chat_id] = {
         "active": True,
@@ -79,7 +81,7 @@ def send_question(bot, chat_id):
     user = user_data[chat_id]
 
     if user["index"] >= len(user["questions"]):
-        all_questions = HERO_QUESTIONS + SPELL_QUESTIONS
+        all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS
         user["questions"] = random.sample(all_questions, len(all_questions))
         user["index"] = 0
 
@@ -97,8 +99,11 @@ def send_question(bot, chat_id):
     print("Ada file?", os.path.exists(image_path))
     print("====================")
 
+    # 🔥 caption otomatis
     if "spell" in q["image"].lower():
         caption = "❓ Tebak spell ini!"
+    elif "item" in q["image"].lower():
+        caption = "❓ Tebak item ini!"
     else:
         caption = "❓ Tebak hero ini!"
 
@@ -203,13 +208,25 @@ def next_q(update, context):
     if not valid_command(text):
         return
 
-    # 🔥 NOTIF TAMBAHAN
+    # 🔥 notif kalau belum mulai
     if chat_id not in user_data or not user_data[chat_id].get("active"):
         update.message.reply_text("⚠️ Game belum dimulai!")
         return
 
+    user = user_data[chat_id]
+
+    # 🔥 kasih jawaban kalau belum dijawab
+    if not user.get("answered") and user.get("current_q"):
+        answer = user["current_q"]["answer"]
+
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text=f"💡 Jawaban: {answer.title()}"
+        )
+
+    # hapus soal lama
     try:
-        last = user_data[chat_id].get("last_q_msg")
+        last = user.get("last_q_msg")
         if last:
             context.bot.delete_message(chat_id=int(chat_id), message_id=last)
     except:
