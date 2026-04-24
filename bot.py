@@ -90,16 +90,23 @@ def send_question(bot, chat_id):
     user["current_q"] = q
     user["answered"] = False
 
-    image_path = os.path.join(BASE_DIR, q["image"])
+    image_path = os.path.join(BASE_DIR, *q["image"].split("/"))
 
-    # 🔥 beda caption
+    # 🔥 DEBUG (buat tau gambar mana error)
+    print("=== DEBUG GAMBAR ===")
+    print("Soal:", q)
+    print("Path:", image_path)
+    print("Ada file?", os.path.exists(image_path))
+    print("====================")
+
+    # 🔥 caption beda
     if "spell" in q["image"].lower():
         caption = "❓ Tebak spell ini!"
     else:
         caption = "❓ Tebak hero ini!"
 
     if not os.path.exists(image_path):
-        print("Gambar tidak ditemukan:", image_path)
+        print("❌ Gambar tidak ditemukan:", image_path)
         bot.send_message(chat_id=int(chat_id), text="Gambar tidak ditemukan!")
         return
 
@@ -169,7 +176,6 @@ def answer(update, context):
         score = database.get_user_score(user_id) or 0
         rank = get_rank(score)
 
-        # 🔥 pakai emoji biasa
         context.bot.send_message(
             chat_id=int(chat_id),
             text=(
@@ -180,6 +186,7 @@ def answer(update, context):
             )
         )
 
+        # hapus soal lama
         try:
             last = user.get("last_q_msg")
             if last:
