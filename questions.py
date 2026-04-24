@@ -36,7 +36,7 @@ QUESTIONS = [
     {"image": "images/Esmeralda.png", "answer": "Esmeralda"},
     {"image": "images/Estes.png", "answer": "Estes"},
     {"image": "images/Eudora.png", "answer": "Eudora"},
-    {"image": "images/Exana.png", "answer": "Exana"},
+    {"image": "images/Vexana.png", "answer": "Vexana"},
     {"image": "images/Fanny.png", "answer": "Fanny"},
     {"image": "images/Faramis.png", "answer": "Faramis"},
     {"image": "images/Floryn.png", "answer": "Floryn"},
