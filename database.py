@@ -89,6 +89,28 @@ def get_global_leaderboard(limit=10):
         cur.close()
         conn.close()
 
+# ================= GLOBAL RANK =================
+
+def get_global_rank(user_id):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+        SELECT rank FROM (
+            SELECT user_id,
+                   RANK() OVER (ORDER BY score DESC) as rank
+            FROM global_scores
+        ) ranked
+        WHERE user_id = %s
+        """, (user_id,))
+        
+        result = cur.fetchone()
+        return result[0] if result else None
+    finally:
+        cur.close()
+        conn.close()
+
 # ================= GROUP =================
 
 def add_group_score(chat_id, user_id, name, points):
