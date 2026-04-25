@@ -277,7 +277,7 @@ def stats(update, context):
         f"📊 Stats\n\n"
         f"🔥MMR kamu sekarang 👉 {score}\n"
         f"🏆RANK : {rank_name}\n"
-        f"🌍GLOBAL RANK : <b>#{global_rank if global_rank else '-'}</b>\n",
+        f"🌍<b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>\n",
         parse_mode="HTML"
     )
 
