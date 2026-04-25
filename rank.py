@@ -4,10 +4,10 @@ def get_rank(mmr):
     elif mmr <= 5000:
         return "LEGEND"
     elif mmr <= 7500:
-        return "MYTHIC"
+        return "<b>MYTHIC</b>"
     elif mmr <= 10000:
-        return "MYTHIC HONOR"
+        return "<b>💫 MYTHIC HONOR 💫</b>"
     elif mmr <= 15000:
-        return "MYTHIC GLORY"
+        return "<b>⭐️ MYTHIC GLORY ⭐️</b>"
     else:
-        return "IMMORTAL"
+        return "<b>🌟 MYTHIC IMMORTAL 🌟</b>"
