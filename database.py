@@ -74,7 +74,7 @@ def get_user_score(user_id):
         cur.close()
         conn.close()
 
-def get_global_leaderboard(limit=10):
+def get_global_leaderboard(limit=20):
     conn = get_conn()
     cur = conn.cursor()
 
@@ -130,7 +130,7 @@ def add_group_score(chat_id, user_id, name, points):
         cur.close()
         conn.close()
 
-def get_group_leaderboard(chat_id, limit=10):
+def get_group_leaderboard(chat_id, limit=20):
     conn = get_conn()
     cur = conn.cursor()
 
