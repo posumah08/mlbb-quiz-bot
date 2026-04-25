@@ -5,6 +5,7 @@ from question_hero import QUESTIONS as HERO_QUESTIONS
 from question_spell import QUESTIONS as SPELL_QUESTIONS
 from question_item import QUESTIONS as ITEM_QUESTIONS
 from rank import get_rank
+from answers import ANSWERS
 import database
 import random
 import os
@@ -146,7 +147,14 @@ def answer(update, context):
 
     correct = q["answer"].lower()
 
-    if text.replace(" ", "") == correct.replace(" ", ""):
+    # ✅ ambil semua kemungkinan jawaban
+    valid_answers = ANSWERS.get(correct, [correct])
+
+    # ✅ normalize (hapus spasi biar fleksibel)
+    user_input = text.replace(" ", "")
+    valid_answers = [ans.lower().replace(" ", "") for ans in valid_answers]
+
+    if user_input in valid_answers:
         user["answered"] = True
 
         try:
