@@ -74,7 +74,7 @@ def get_user_score(user_id):
         cur.close()
         conn.close()
 
-def get_global_leaderboard(limit=20):
+def get_global_leaderboard(limit=10):
     conn = get_conn()
     cur = conn.cursor()
 
