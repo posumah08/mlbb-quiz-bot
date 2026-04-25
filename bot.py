@@ -5,7 +5,6 @@ from question_hero import QUESTIONS as HERO_QUESTIONS
 from question_spell import QUESTIONS as SPELL_QUESTIONS
 from question_item import QUESTIONS as ITEM_QUESTIONS
 from rank import get_rank
-from answers import ANSWERS
 import database
 import random
 import os
@@ -146,11 +145,12 @@ def answer(update, context):
         return
 
     correct = q["answer"].lower()
+    aliases = q.get("aliases", [])
 
-    # ✅ ambil semua kemungkinan jawaban
-    valid_answers = ANSWERS.get(correct, [correct])
+    # gabungkan jawaban utama + alias
+    valid_answers = [correct] + aliases
 
-    # ✅ normalize (hapus spasi biar fleksibel)
+    # normalize
     user_input = text.replace(" ", "")
     valid_answers = [ans.lower().replace(" ", "") for ans in valid_answers]
 
@@ -200,10 +200,19 @@ def next_q(update, context):
     user = user_data[chat_id]
 
     if not user.get("answered") and user.get("current_q"):
-        ans = user["current_q"]["answer"]
+        q = user["current_q"]
+        ans = q["answer"]
+        aliases = q.get("aliases", [])
+
+        if aliases:
+            alias_text = aliases[0]  # ambil 1 alias
+            text = f"💡 Jawaban: {ans.title()} ({alias_text})"
+        else:
+            text = f"💡 Jawaban: {ans.title()}"
+
         context.bot.send_message(
             chat_id=int(chat_id),
-            text=f"💡 Jawaban: {ans.title()}"
+            text=text
         )
 
     try:
