@@ -259,9 +259,10 @@ def topgrup(update, context):
     text = "🏆 LEADERBOARD GRUP 🏆\n\n"
 
     for i, (name, score) in enumerate(data, start=1):
-        text += f"{i}. {name} — {score} MMR\n"
+        rank_name = get_rank(score)
+        text += f"{i}. {name} — {rank_name} ({score})\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 # ================= STATS ==================
 
@@ -276,7 +277,7 @@ def stats(update, context):
         f"📊 Stats\n\n"
         f"🔥MMR kamu sekarang 👉 {score}\n"
         f"🏆RANK : {rank_name}\n"
-        f"🌍GLOBAL RANK : #{global_rank if global_rank else '-'}\n",
+        f"🌍GLOBAL RANK : <b>#{global_rank if global_rank else '-'}</b>\n",
         parse_mode="HTML"
     )
 
