@@ -238,9 +238,10 @@ def leaderboard(update, context):
     text = "🏆 LEADERBOARD GLOBAL 🏆\n\n"
 
     for i, (name, score) in enumerate(data, start=1):
-        text += f"{i}. {name} — {score} MMR\n"
+        rank_name = get_rank(score)
+        text += f"{i}. {name} — {rank_name} ({score})\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 # ================= LEADERBOARD GRUP ==================
 
