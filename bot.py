@@ -147,10 +147,8 @@ def answer(update, context):
     correct = q["answer"].lower()
     aliases = q.get("aliases", [])
 
-    # gabungkan jawaban utama + alias
     valid_answers = [correct] + aliases
 
-    # normalize
     user_input = text.replace(" ", "")
     valid_answers = [ans.lower().replace(" ", "") for ans in valid_answers]
 
@@ -173,7 +171,8 @@ def answer(update, context):
                 f"🔥 +25 MMR\n"
                 f"📊 TOTAL MMR: {score}\n"
                 f"🏆 RANK: {rank_name}"
-            )
+            ),
+            parse_mode="HTML"
         )
 
         try:
@@ -205,7 +204,7 @@ def next_q(update, context):
         aliases = q.get("aliases", [])
 
         if aliases:
-            alias_text = aliases[0]  # ambil 1 alias
+            alias_text = aliases[0]
             text = f"💡 Jawaban: {ans.title()} ({alias_text})"
         else:
             text = f"💡 Jawaban: {ans.title()}"
@@ -277,7 +276,8 @@ def stats(update, context):
         f"📊 Stats\n\n"
         f"🔥MMR kamu sekarang 👉 {score}\n"
         f"🏆RANK : {rank_name}\n"
-        f"🌍GLOBAL RANK : #{global_rank if global_rank else '-'}\n"
+        f"🌍GLOBAL RANK : #{global_rank if global_rank else '-'}\n",
+        parse_mode="HTML"
     )
 
 # ================= RUN ==================
