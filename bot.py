@@ -4,6 +4,7 @@ from config import TOKEN
 from question_hero import QUESTIONS as HERO_QUESTIONS
 from question_spell import QUESTIONS as SPELL_QUESTIONS
 from question_item import QUESTIONS as ITEM_QUESTIONS
+from question_emblem import QUESTIONS as EMBLEM_QUESTIONS  # ✅ TAMBAHAN
 from rank import get_rank
 import database
 import random
@@ -48,7 +49,8 @@ def start(update, context):
         update.message.reply_text("Game masih berjalan!")
         return
 
-    all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS
+    # ✅ TAMBAH EMBLEM KE SINI
+    all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS + EMBLEM_QUESTIONS
 
     user_data[chat_id] = {
         "active": True,
@@ -70,7 +72,8 @@ def send_question(bot, chat_id):
     user = user_data[chat_id]
 
     if user["index"] >= len(user["questions"]):
-        all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS
+        # ✅ RESET + INCLUDE EMBLEM
+        all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS + EMBLEM_QUESTIONS
         user["questions"] = random.sample(all_questions, len(all_questions))
         user["index"] = 0
 
@@ -82,10 +85,13 @@ def send_question(bot, chat_id):
 
     image_path = os.path.join(BASE_DIR, *q["image"].split("/"))
 
+    # ✅ TAMBAH DETEKSI EMBLEM
     if "spell" in q["image"].lower():
         caption = "❓ Tebak spell ini!"
     elif "item" in q["image"].lower():
         caption = "❓ Tebak item ini!"
+    elif "emblem" in q["image"].lower():
+        caption = "❓ Tebak talent/emblem ini!"
     else:
         caption = "❓ Tebak hero ini!"
 
@@ -209,10 +215,7 @@ def next_q(update, context):
         else:
             text = f"💡 Jawaban: {ans.title()}"
 
-        context.bot.send_message(
-            chat_id=int(chat_id),
-            text=text
-        )
+        context.bot.send_message(chat_id=int(chat_id), text=text)
 
     try:
         last = user.get("last_q_msg")
@@ -223,7 +226,7 @@ def next_q(update, context):
 
     send_question(context.bot, chat_id)
 
-# ================= LEADERBOARD GLOBAL ==================
+# ================= LEADERBOARD ==================
 
 def leaderboard(update, context):
     if not group_only(update):
@@ -243,14 +246,13 @@ def leaderboard(update, context):
 
     update.message.reply_text(text, parse_mode="HTML")
 
-# ================= LEADERBOARD GRUP ==================
+# ================= TOP GRUP ==================
 
 def topgrup(update, context):
     if not group_only(update):
         return
 
     chat_id = str(update.effective_chat.id)
-
     data = database.get_group_leaderboard(chat_id)
 
     if not data:
