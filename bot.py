@@ -34,18 +34,25 @@ def send_next_question(context):
     chat_id = context.job.context
     send_question(context.bot, chat_id)
 
+# 🔥 FIX POOL (RESET DARI DATA ASLI)
 def get_from_pool(user, key):
-    pool = user[f"{key}_pool"]
-    idx = user[f"{key}_index"]
+    pool_key = f"{key}_pool"
+    index_key = f"{key}_index"
+    data_key = f"{key}_data"
+
+    pool = user[pool_key]
+    idx = user[index_key]
 
     if idx >= len(pool):
-        pool = random.sample(pool, len(pool))
-        user[f"{key}_pool"] = pool
-        user[f"{key}_index"] = 0
+        # 🔥 reset dari data asli, bukan pool lama
+        pool = random.sample(user[data_key], len(user[data_key]))
+        user[pool_key] = pool
+        user[index_key] = 0
         idx = 0
 
     q = pool[idx]
-    user[f"{key}_index"] += 1
+    user[index_key] += 1
+
     return q
 
 # ================= START ==================
@@ -78,10 +85,16 @@ def start(update, context):
     user_data[chat_id] = {
         "active": True,
 
-        # 🔥 RANDOM START BIAR /start GA SAMA
+        # 🔥 random start pattern
         "pattern_index": random.randint(0, len(PATTERN)-1),
 
-        # 🔥 POOL ANTI REPEAT
+        # 🔥 simpan data asli
+        "hero_data": HERO_QUESTIONS,
+        "item_data": ITEM_QUESTIONS,
+        "spell_data": SPELL_QUESTIONS,
+        "emblem_data": EMBLEM_QUESTIONS,
+
+        # 🔥 pool (acak awal)
         "hero_pool": random.sample(HERO_QUESTIONS, len(HERO_QUESTIONS)),
         "item_pool": random.sample(ITEM_QUESTIONS, len(ITEM_QUESTIONS)),
         "spell_pool": random.sample(SPELL_QUESTIONS, len(SPELL_QUESTIONS)),
