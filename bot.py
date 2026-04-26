@@ -4,7 +4,7 @@ from config import TOKEN
 from question_hero import QUESTIONS as HERO_QUESTIONS
 from question_spell import QUESTIONS as SPELL_QUESTIONS
 from question_item import QUESTIONS as ITEM_QUESTIONS
-from question_emblem import QUESTIONS as EMBLEM_QUESTIONS  # ✅ TAMBAHAN
+from question_emblem import QUESTIONS as EMBLEM_QUESTIONS
 from rank import get_rank
 import database
 import random
@@ -14,6 +14,17 @@ user_data = {}
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# ================= POLA ==================
+PATTERN = [
+    "hero","hero","item",
+    "hero","hero","item",
+    "hero","hero","item",
+    "emblem",
+    "hero","hero","item",
+    "hero","hero","item",
+    "spell"
+]
+
 # ================= UTIL ==================
 
 def group_only(update):
@@ -22,6 +33,20 @@ def group_only(update):
 def send_next_question(context):
     chat_id = context.job.context
     send_question(context.bot, chat_id)
+
+def get_from_pool(user, key):
+    pool = user[f"{key}_pool"]
+    idx = user[f"{key}_index"]
+
+    if idx >= len(pool):
+        pool = random.sample(pool, len(pool))
+        user[f"{key}_pool"] = pool
+        user[f"{key}_index"] = 0
+        idx = 0
+
+    q = pool[idx]
+    user[f"{key}_index"] += 1
+    return q
 
 # ================= START ==================
 
@@ -34,7 +59,8 @@ def start(update, context):
         ]
 
         update.message.reply_text(
-            "Halo Player, Selamat bergabung di QUIZ MLBB ID.\n"
+            "Halo Player, Selamat bergabung di\n"
+            "QUIZ MLBB ID.\n"
             "Tambahkan Bot ini di GRUP TELEGRAM untuk Mulai Permainan.",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -49,13 +75,23 @@ def start(update, context):
         update.message.reply_text("Game masih berjalan!")
         return
 
-    # ✅ TAMBAH EMBLEM KE SINI
-    all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS + EMBLEM_QUESTIONS
-
     user_data[chat_id] = {
         "active": True,
-        "questions": random.sample(all_questions, len(all_questions)),
-        "index": 0,
+
+        # 🔥 RANDOM START BIAR /start GA SAMA
+        "pattern_index": random.randint(0, len(PATTERN)-1),
+
+        # 🔥 POOL ANTI REPEAT
+        "hero_pool": random.sample(HERO_QUESTIONS, len(HERO_QUESTIONS)),
+        "item_pool": random.sample(ITEM_QUESTIONS, len(ITEM_QUESTIONS)),
+        "spell_pool": random.sample(SPELL_QUESTIONS, len(SPELL_QUESTIONS)),
+        "emblem_pool": random.sample(EMBLEM_QUESTIONS, len(EMBLEM_QUESTIONS)),
+
+        "hero_index": 0,
+        "item_index": 0,
+        "spell_index": 0,
+        "emblem_index": 0,
+
         "current_q": None,
         "last_q_msg": None,
         "answered": False
@@ -71,26 +107,28 @@ def send_question(bot, chat_id):
 
     user = user_data[chat_id]
 
-    if user["index"] >= len(user["questions"]):
-        # ✅ RESET + INCLUDE EMBLEM
-        all_questions = HERO_QUESTIONS + SPELL_QUESTIONS + ITEM_QUESTIONS + EMBLEM_QUESTIONS
-        user["questions"] = random.sample(all_questions, len(all_questions))
-        user["index"] = 0
+    q_type = PATTERN[user["pattern_index"]]
+    user["pattern_index"] = (user["pattern_index"] + 1) % len(PATTERN)
 
-    q = user["questions"][user["index"]]
-    user["index"] += 1
+    if q_type == "hero":
+        q = get_from_pool(user, "hero")
+    elif q_type == "item":
+        q = get_from_pool(user, "item")
+    elif q_type == "spell":
+        q = get_from_pool(user, "spell")
+    else:
+        q = get_from_pool(user, "emblem")
 
     user["current_q"] = q
     user["answered"] = False
 
     image_path = os.path.join(BASE_DIR, *q["image"].split("/"))
 
-    # ✅ TAMBAH DETEKSI EMBLEM
-    if "spell" in q["image"].lower():
+    if q_type == "spell":
         caption = "❓ Tebak spell ini!"
-    elif "item" in q["image"].lower():
+    elif q_type == "item":
         caption = "❓ Tebak item ini!"
-    elif "emblem" in q["image"].lower():
+    elif q_type == "emblem":
         caption = "❓ Tebak talent/emblem ini!"
     else:
         caption = "❓ Tebak hero ini!"
@@ -136,15 +174,12 @@ def answer(update, context):
 
     user = user_data[chat_id]
 
-    if not user.get("active"):
+    if not user.get("active") or user.get("answered"):
         return
 
     if update.message.reply_to_message:
         if update.message.reply_to_message.message_id != user.get("last_q_msg"):
             return
-
-    if user.get("answered"):
-        return
 
     q = user.get("current_q")
     if not q:
@@ -164,8 +199,8 @@ def answer(update, context):
         try:
             database.add_global_score(user_id, name, 25)
             database.add_group_score(chat_id, user_id, name, 25)
-        except Exception as e:
-            print("DB ERROR:", e)
+        except:
+            pass
 
         score = database.get_user_score(user_id) or 0
         rank_name = get_rank(score)
@@ -210,8 +245,7 @@ def next_q(update, context):
         aliases = q.get("aliases", [])
 
         if aliases:
-            alias_text = aliases[0]
-            text = f"💡 Jawaban: {ans.title()} ({alias_text})"
+            text = f"💡 Jawaban: {ans.title()} ({aliases[0]})"
         else:
             text = f"💡 Jawaban: {ans.title()}"
 
