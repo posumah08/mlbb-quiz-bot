@@ -1,6 +1,5 @@
 ACHIEVEMENTS = {
 
-    # ================= COMPLETION =================
     "spell_master": {
         "name": "<b>🧿 Raja Spell</b>",
         "desc": "Jawab semua Spell",
@@ -27,86 +26,43 @@ ACHIEVEMENTS = {
         "reward": 500
     },
 
-    # ================= STREAK =================
-    "streak_10": {
-        "name": "<b>🔥 On Fire</b>",
-        "desc": "10x benar berturut",
-        "reward": 500
-    },
-    "streak_50": {
-        "name": "<b>⚡ Gak Ketahan</b>",
-        "desc": "50x benar berturut",
-        "reward": 500
-    },
-    "streak_100": {
-        "name": "<b>🧠 Dewa Jawaban</b>",
-        "desc": "100x benar berturut",
-        "reward": 500
-    },
-    "streak_150": {
-        "name": "<b>👁️ Otak Dewa</b>",
-        "desc": "150x benar berturut",
-        "reward": 500
-    },
-    "streak_200": {
-        "name": "<b>♾️ Immortal</b>",
-        "desc": "200x benar berturut",
-        "reward": 500
-    },
-    "streak_250": {
-        "name": "<b>👶 Anak Moonton</b>",
-        "desc": "250x benar berturut",
-        "reward": 500
-    },
+    "streak_10": {"name": "<b>🔥 On Fire</b>", "desc": "10x benar", "reward": 500},
+    "streak_50": {"name": "<b>⚡ Gak Ketahan</b>", "desc": "50x benar", "reward": 500},
+    "streak_100": {"name": "<b>🧠 Dewa Jawaban</b>", "desc": "100x benar", "reward": 500},
+    "streak_150": {"name": "<b>👁️ Otak Dewa</b>", "desc": "150x benar", "reward": 500},
+    "streak_200": {"name": "<b>♾️ Immortal</b>", "desc": "200x benar", "reward": 500},
+    "streak_250": {"name": "<b>👶 Anak Moonton</b>", "desc": "250x benar", "reward": 500},
 
-    # ================= MMR =================
-    "mmr_50k": {
-        "name": "<b>💸 Idol 50K</b>",
-        "desc": "Capai 50.000 MMR",
-        "reward": 500
-    },
-    "mmr_100k": {
-        "name": "<b>💎 No Life 100K</b>",
-        "desc": "Capai 100.000 MMR",
-        "reward": 500
-    },
-    "mmr_250k": {
-        "name": "<b>⚔️ Dewa Perang 250K</b>",
-        "desc": "Capai 250.000 MMR",
-        "reward": 500
-    },
-    "mmr_500k": {
-        "name": "<b>👑 Real No Life 500K</b>",
-        "desc": "Capai 500.000 MMR",
-        "reward": 500
-    },
+    "mmr_50k": {"name": "<b>💸 Idol 50K</b>", "desc": "50K MMR", "reward": 500},
+    "mmr_100k": {"name": "<b>💎 No Life 100K</b>", "desc": "100K MMR", "reward": 500},
+    "mmr_250k": {"name": "<b>⚔️ Dewa Perang 250K</b>", "desc": "250K MMR", "reward": 500},
+    "mmr_500k": {"name": "<b>👑 Real No Life 500K</b>", "desc": "500K MMR", "reward": 500},
 
-    # ================= AKTIF =================
-    "active_3": {
-        "name": "<b>🌱 Mulai Rajin</b>",
-        "desc": "Aktif 3 hari",
-        "reward": 500
-    },
-    "active_7": {
-        "name": "<b>📈 Konsisten</b>",
-        "desc": "Aktif 7 hari",
-        "reward": 500
-    },
-    "active_10": {
-        "name": "<b>🎮 Niat Main</b>",
-        "desc": "Aktif 10 hari",
-        "reward": 500
-    },
-    "active_30": {
-        "name": "<b>🏆 MASTER MLBB</b>",
-        "desc": "Aktif 30 hari",
-        "reward": 500
-    },
+    "active_3": {"name": "<b>🌱 Mulai Rajin</b>", "desc": "3 hari", "reward": 500},
+    "active_7": {"name": "<b>📈 Konsisten</b>", "desc": "7 hari", "reward": 500},
+    "active_10": {"name": "<b>🎮 Niat Main</b>", "desc": "10 hari", "reward": 500},
+    "active_30": {"name": "<b>🏆 MASTER MLBB</b>", "desc": "30 hari", "reward": 500},
 
-    # ================= FINAL =================
     "all_complete": {
         "name": "<b>🌟 Sang Legenda</b>",
-        "desc": "Unlock semua achievement",
+        "desc": "Semua achievement",
         "reward": 500
     }
 }
+
+# ================= FORMAT NOTIF =================
+
+def format_achievement(name, achievement_key):
+    data = ACHIEVEMENTS.get(achievement_key)
+
+    if not data:
+        return None
+
+    return (
+        f"🏆 Achievement Terbuka!\n\n"
+        f"{data['name']}\n"
+        f"User : {name}\n\n"
+        f"{data['desc']} berhasil kamu selesaikan.\n\n"
+        f"+{data['reward']} MMR\n\n"
+        f"/achieve untuk lihat semua pencapaian"
+    )
