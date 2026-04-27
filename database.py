@@ -15,9 +15,12 @@ db_pool = None
 
 def init_pool():
     global db_pool
+    if db_pool is not None:
+        return
+
     try:
         db_pool = psycopg2.pool.SimpleConnectionPool(
-            1, 10,  # minconn, maxconn
+            1, 10,
             DATABASE_URL,
             sslmode='require'
         )
@@ -27,6 +30,11 @@ def init_pool():
         raise e
 
 def get_conn():
+    global db_pool
+
+    if db_pool is None:
+        init_pool()  # 🔥 AUTO INIT (ini fix utama)
+
     try:
         return db_pool.getconn()
     except Exception as e:
@@ -34,8 +42,10 @@ def get_conn():
         raise e
 
 def release_conn(conn):
+    global db_pool
     try:
-        db_pool.putconn(conn)
+        if db_pool:
+            db_pool.putconn(conn)
     except:
         pass
 
