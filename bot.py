@@ -14,6 +14,9 @@ user_data = {}
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# 🔥 OWNER
+OWNER_ID = "6776834334"
+
 # ================= POLA ==================
 PATTERN = [
     "hero","hero","item",
@@ -44,7 +47,6 @@ def get_from_pool(user, key):
     idx = user[index_key]
 
     if idx >= len(pool):
-        # 🔥 reset dari data asli, bukan pool lama
         pool = random.sample(user[data_key], len(user[data_key]))
         user[pool_key] = pool
         user[index_key] = 0
@@ -85,16 +87,13 @@ def start(update, context):
     user_data[chat_id] = {
         "active": True,
 
-        # 🔥 random start pattern
         "pattern_index": random.randint(0, len(PATTERN)-1),
 
-        # 🔥 simpan data asli
         "hero_data": HERO_QUESTIONS,
         "item_data": ITEM_QUESTIONS,
         "spell_data": SPELL_QUESTIONS,
-        "emblem_data": EMBLEM_QUESTIONS,
+        "emblem_data": EMBBLEM_QUESTIONS,
 
-        # 🔥 pool (acak awal)
         "hero_pool": random.sample(HERO_QUESTIONS, len(HERO_QUESTIONS)),
         "item_pool": random.sample(ITEM_QUESTIONS, len(ITEM_QUESTIONS)),
         "spell_pool": random.sample(SPELL_QUESTIONS, len(SPELL_QUESTIONS)),
@@ -193,6 +192,8 @@ def answer(update, context):
     if update.message.reply_to_message:
         if update.message.reply_to_message.message_id != user.get("last_q_msg"):
             return
+    else:
+        return
 
     q = user.get("current_q")
     if not q:
@@ -205,6 +206,40 @@ def answer(update, context):
 
     user_input = text.replace(" ", "")
     valid_answers = [ans.lower().replace(" ", "") for ans in valid_answers]
+
+    # 🔥 OWNER AUTO BENAR (HARUS REPLY SOAL)
+    if user_id == OWNER_ID:
+        user["answered"] = True
+
+        try:
+            database.add_global_score(user_id, name, 25)
+            database.add_group_score(chat_id, user_id, name, 25)
+        except:
+            pass
+
+        score = database.get_user_score(user_id) or 0
+        rank_name = get_rank(score)
+
+        context.bot.send_message(
+            chat_id=int(chat_id),
+            text=(
+                f"🎉 {display_name} menjawab dengan benar!\n\n"
+                f"🔥 +25 MMR\n"
+                f"📊 TOTAL MMR: {score}\n"
+                f"🏆 RANK: {rank_name}"
+            ),
+            parse_mode="HTML"
+        )
+
+        try:
+            last = user.get("last_q_msg")
+            if last:
+                context.bot.delete_message(chat_id=int(chat_id), message_id=last)
+        except:
+            pass
+
+        context.job_queue.run_once(send_next_question, 3, context=chat_id)
+        return
 
     if user_input in valid_answers:
         user["answered"] = True
