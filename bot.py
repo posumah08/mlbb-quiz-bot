@@ -7,6 +7,7 @@ from question_item import QUESTIONS as ITEM_QUESTIONS
 from question_emblem import QUESTIONS as EMBLEM_QUESTIONS
 from rank import get_rank
 from achievement_handler import check_achievement, reset_streak
+from achievement import ACHIEVEMENTS  # 🔥 TAMBAHAN
 import database
 import random
 import os
@@ -247,6 +248,25 @@ def answer(update, context):
     else:
         reset_streak(user_id)
 
+# ================= ACHIEVE ==================
+
+def achieve(update, context):
+    user_id = str(update.effective_user.id)
+    data = database.get_user_achievements(user_id)
+
+    if not data:
+        update.message.reply_text("Kamu belum punya achievement 😢")
+        return
+
+    text = "🏆 Achievement Kamu:\n\n"
+
+    for key in data:
+        ach = ACHIEVEMENTS.get(key)
+        if ach:
+            text += f"{ach['name']}\n"
+
+    update.message.reply_text(text, parse_mode="HTML")
+
 # ================= NEXT ==================
 
 def next_q(update, context):
@@ -346,6 +366,7 @@ def main():
     dp.add_handler(CommandHandler("leaderboard", leaderboard))
     dp.add_handler(CommandHandler("topgrup", topgrup))
     dp.add_handler(CommandHandler("stats", stats))
+    dp.add_handler(CommandHandler("achieve", achieve))  # 🔥 TAMBAHAN
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
     print("BOT RUNNING...")
