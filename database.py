@@ -11,7 +11,11 @@ if not DATABASE_URL:
 # ================= CONNECT =================
 
 def get_conn():
-    return psycopg2.connect(DATABASE_URL, sslmode='require')
+    try:
+        return psycopg2.connect(DATABASE_URL, sslmode='require')
+    except Exception as e:
+        print("DB CONNECT ERROR:", e)
+        raise e
 
 # ================= INIT =================
 
@@ -40,7 +44,7 @@ def init_db():
         )
         """)
 
-        # ACHIEVEMENTS (🔥 tambahan penting)
+        # ACHIEVEMENTS
         cur.execute("""
         CREATE TABLE IF NOT EXISTS achievements (
             user_id TEXT,
@@ -50,6 +54,11 @@ def init_db():
         """)
 
         conn.commit()
+
+    except Exception as e:
+        print("INIT DB ERROR:", e)
+        conn.rollback()
+
     finally:
         cur.close()
         conn.close()
@@ -65,11 +74,17 @@ def add_global_score(user_id, name, points):
         INSERT INTO global_scores (user_id, name, score)
         VALUES (%s, %s, %s)
         ON CONFLICT (user_id)
-        DO UPDATE SET score = global_scores.score + EXCLUDED.score,
-                      name = EXCLUDED.name
+        DO UPDATE SET 
+            score = global_scores.score + EXCLUDED.score,
+            name = EXCLUDED.name
         """, (user_id, name, points))
 
         conn.commit()
+
+    except Exception as e:
+        print("ADD GLOBAL SCORE ERROR:", e)
+        conn.rollback()
+
     finally:
         cur.close()
         conn.close()
@@ -82,6 +97,11 @@ def get_user_score(user_id):
         cur.execute("SELECT score FROM global_scores WHERE user_id = %s", (user_id,))
         result = cur.fetchone()
         return result[0] if result else 0
+
+    except Exception as e:
+        print("GET USER SCORE ERROR:", e)
+        return 0
+
     finally:
         cur.close()
         conn.close()
@@ -96,7 +116,13 @@ def get_global_leaderboard(limit=15):
         ORDER BY score DESC
         LIMIT %s
         """, (limit,))
+
         return cur.fetchall()
+
+    except Exception as e:
+        print("LEADERBOARD ERROR:", e)
+        return []
+
     finally:
         cur.close()
         conn.close()
@@ -119,6 +145,11 @@ def get_global_rank(user_id):
 
         result = cur.fetchone()
         return result[0] if result else None
+
+    except Exception as e:
+        print("GET RANK ERROR:", e)
+        return None
+
     finally:
         cur.close()
         conn.close()
@@ -134,11 +165,17 @@ def add_group_score(chat_id, user_id, name, points):
         INSERT INTO group_scores (chat_id, user_id, name, score)
         VALUES (%s, %s, %s, %s)
         ON CONFLICT (chat_id, user_id)
-        DO UPDATE SET score = group_scores.score + EXCLUDED.score,
-                      name = EXCLUDED.name
+        DO UPDATE SET 
+            score = group_scores.score + EXCLUDED.score,
+            name = EXCLUDED.name
         """, (chat_id, user_id, name, points))
 
         conn.commit()
+
+    except Exception as e:
+        print("ADD GROUP SCORE ERROR:", e)
+        conn.rollback()
+
     finally:
         cur.close()
         conn.close()
@@ -156,6 +193,11 @@ def get_group_leaderboard(chat_id, limit=20):
         """, (chat_id, limit))
 
         return cur.fetchall()
+
+    except Exception as e:
+        print("GROUP LEADERBOARD ERROR:", e)
+        return []
+
     finally:
         cur.close()
         conn.close()
@@ -174,6 +216,11 @@ def add_achievement(user_id, achievement_key):
         """, (user_id, achievement_key))
 
         conn.commit()
+
+    except Exception as e:
+        print("ADD ACHIEVEMENT ERROR:", e)
+        conn.rollback()
+
     finally:
         cur.close()
         conn.close()
@@ -189,6 +236,11 @@ def has_achievement(user_id, achievement_key):
         """, (user_id, achievement_key))
 
         return cur.fetchone() is not None
+
+    except Exception as e:
+        print("CHECK ACHIEVEMENT ERROR:", e)
+        return False
+
     finally:
         cur.close()
         conn.close()
@@ -201,9 +253,14 @@ def get_user_achievements(user_id):
         cur.execute("""
         SELECT achievement_key FROM achievements
         WHERE user_id = %s
-        """, (user_id,))
+        """ , (user_id,))
 
         return [row[0] for row in cur.fetchall()]
+
+    except Exception as e:
+        print("GET USER ACHIEVEMENTS ERROR:", e)
+        return []
+
     finally:
         cur.close()
         conn.close()
