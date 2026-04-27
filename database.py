@@ -1,4 +1,5 @@
 import psycopg2
+from psycopg2 import pool
 import os
 
 # ================= CONFIG =================
@@ -8,14 +9,35 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise Exception("DATABASE_URL tidak ditemukan! Pastikan sudah set di Railway Variables")
 
-# ================= CONNECT =================
+# ================= POOL =================
+
+db_pool = None
+
+def init_pool():
+    global db_pool
+    try:
+        db_pool = psycopg2.pool.SimpleConnectionPool(
+            1, 10,  # minconn, maxconn
+            DATABASE_URL,
+            sslmode='require'
+        )
+        print("DB Pool Ready")
+    except Exception as e:
+        print("POOL ERROR:", e)
+        raise e
 
 def get_conn():
     try:
-        return psycopg2.connect(DATABASE_URL, sslmode='require')
+        return db_pool.getconn()
     except Exception as e:
         print("DB CONNECT ERROR:", e)
         raise e
+
+def release_conn(conn):
+    try:
+        db_pool.putconn(conn)
+    except:
+        pass
 
 # ================= INIT =================
 
@@ -61,7 +83,7 @@ def init_db():
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 # ================= GLOBAL =================
 
@@ -87,7 +109,7 @@ def add_global_score(user_id, name, points):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 def get_user_score(user_id):
     conn = get_conn()
@@ -104,7 +126,7 @@ def get_user_score(user_id):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 def get_global_leaderboard(limit=15):
     conn = get_conn()
@@ -125,7 +147,7 @@ def get_global_leaderboard(limit=15):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 # ================= GLOBAL RANK =================
 
@@ -152,7 +174,7 @@ def get_global_rank(user_id):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 # ================= GROUP =================
 
@@ -178,7 +200,7 @@ def add_group_score(chat_id, user_id, name, points):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 def get_group_leaderboard(chat_id, limit=20):
     conn = get_conn()
@@ -200,7 +222,7 @@ def get_group_leaderboard(chat_id, limit=20):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 # ================= ACHIEVEMENTS =================
 
@@ -223,7 +245,7 @@ def add_achievement(user_id, achievement_key):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 def has_achievement(user_id, achievement_key):
     conn = get_conn()
@@ -243,7 +265,7 @@ def has_achievement(user_id, achievement_key):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
 
 def get_user_achievements(user_id):
     conn = get_conn()
@@ -253,7 +275,7 @@ def get_user_achievements(user_id):
         cur.execute("""
         SELECT achievement_key FROM achievements
         WHERE user_id = %s
-        """ , (user_id,))
+        """, (user_id,))
 
         return [row[0] for row in cur.fetchall()]
 
@@ -263,4 +285,4 @@ def get_user_achievements(user_id):
 
     finally:
         cur.close()
-        conn.close()
+        release_conn(conn)
