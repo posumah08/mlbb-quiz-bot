@@ -52,7 +52,7 @@ ACHIEVEMENTS = {
 
 # ================= FORMAT NOTIF =================
 
-def format_achievement(name, achievement_key):
+def format_achievement(user_name, achievement_key):
     data = ACHIEVEMENTS.get(achievement_key)
 
     if not data:
@@ -61,7 +61,7 @@ def format_achievement(name, achievement_key):
     return (
         f"🏆 Achievement Terbuka!\n\n"
         f"{data['name']}\n"
-        f"User : {name}\n\n"
+        f"User : {user_name}\n\n"
         f"{data['desc']} berhasil kamu selesaikan.\n\n"
         f"+{data['reward']} MMR\n\n"
         f"/achieve untuk lihat semua pencapaian"
