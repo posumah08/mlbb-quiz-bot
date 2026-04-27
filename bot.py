@@ -6,6 +6,7 @@ from question_spell import QUESTIONS as SPELL_QUESTIONS
 from question_item import QUESTIONS as ITEM_QUESTIONS
 from question_emblem import QUESTIONS as EMBLEM_QUESTIONS
 from rank import get_rank
+from achievement import ACHIEVEMENTS, format_achievement
 import database
 import random
 import os
@@ -14,7 +15,6 @@ user_data = {}
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 🔥 OWNER
 OWNER_ID = "6776834334"
 
 # ================= POLA ==================
@@ -104,7 +104,8 @@ def start(update, context):
 
         "current_q": None,
         "last_q_msg": None,
-        "answered": False
+        "answered": False,
+        "current_type": None
     }
 
     send_question(context.bot, chat_id)
@@ -131,17 +132,16 @@ def send_question(bot, chat_id):
 
     user["current_q"] = q
     user["answered"] = False
+    user["current_type"] = q_type
 
     image_path = os.path.join(BASE_DIR, *q["image"].split("/"))
 
-    if q_type == "spell":
-        caption = "❓ Tebak spell ini!"
-    elif q_type == "item":
-        caption = "❓ Tebak item ini!"
-    elif q_type == "emblem":
-        caption = "❓ Tebak talent/emblem ini!"
-    else:
-        caption = "❓ Tebak hero ini!"
+    caption_map = {
+        "hero": "❓ Tebak hero ini!",
+        "item": "❓ Tebak item ini!",
+        "spell": "❓ Tebak spell ini!",
+        "emblem": "❓ Tebak talent/emblem ini!"
+    }
 
     if not os.path.exists(image_path):
         bot.send_message(chat_id=int(chat_id), text="Gambar tidak ditemukan!")
@@ -152,7 +152,7 @@ def send_question(bot, chat_id):
             msg = bot.send_photo(
                 chat_id=int(chat_id),
                 photo=img,
-                caption=caption
+                caption=caption_map[q_type]
             )
 
         user["last_q_msg"] = msg.message_id
@@ -187,7 +187,6 @@ def answer(update, context):
     if not user.get("active") or user.get("answered"):
         return
 
-    # 🔥 kalau reply tapi bukan ke soal → abaikan
     if update.message.reply_to_message:
         if update.message.reply_to_message.message_id != user.get("last_q_msg"):
             return
@@ -204,45 +203,6 @@ def answer(update, context):
     user_input = text.replace(" ", "")
     valid_answers = [ans.lower().replace(" ", "") for ans in valid_answers]
 
-    # 🔥 OWNER AUTO BENAR (WAJIB REPLY KE SOAL)
-    if (
-        user_id == OWNER_ID and
-        update.message.reply_to_message and
-        update.message.reply_to_message.message_id == user.get("last_q_msg")
-    ):
-        user["answered"] = True
-
-        try:
-            database.add_global_score(user_id, name, 25)
-            database.add_group_score(chat_id, user_id, name, 25)
-        except:
-            pass
-
-        score = database.get_user_score(user_id) or 0
-        rank_name = get_rank(score)
-
-        context.bot.send_message(
-            chat_id=int(chat_id),
-            text=(
-                f"🎉 {display_name} menjawab dengan benar!\n\n"
-                f"🔥 +25 MMR\n"
-                f"📊 TOTAL MMR: {score}\n"
-                f"🏆 RANK: {rank_name}"
-            ),
-            parse_mode="HTML"
-        )
-
-        try:
-            last = user.get("last_q_msg")
-            if last:
-                context.bot.delete_message(chat_id=int(chat_id), message_id=last)
-        except:
-            pass
-
-        context.job_queue.run_once(send_next_question, 3, context=chat_id)
-        return
-
-    # 🔥 USER NORMAL (tidak wajib reply)
     if user_input in valid_answers:
         user["answered"] = True
 
@@ -251,6 +211,37 @@ def answer(update, context):
             database.add_group_score(chat_id, user_id, name, 25)
         except:
             pass
+
+        # 🔥 ACHIEVEMENT SPELL
+        if user.get("current_type") == "spell":
+            try:
+                if not database.has_achievement(user_id, "spell_master"):
+                    total = len(SPELL_QUESTIONS)
+
+                    conn = database.get_conn()
+                    cur = conn.cursor()
+                    cur.execute("SELECT COUNT(*) FROM achievements WHERE user_id = %s", (user_id,))
+                    count = cur.fetchone()[0]
+                    cur.close()
+                    conn.close()
+
+                    if count >= total:
+                        database.add_achievement(user_id, "spell_master")
+
+                        reward = ACHIEVEMENTS["spell_master"]["reward"]
+                        database.add_global_score(user_id, name, reward)
+
+                        context.bot.send_message(
+                            chat_id=int(chat_id),
+                            text=format_achievement(
+                                ACHIEVEMENTS["spell_master"]["name"],
+                                name,
+                                reward
+                            ),
+                            parse_mode="HTML"
+                        )
+            except:
+                pass
 
         score = database.get_user_score(user_id) or 0
         rank_name = get_rank(score)
@@ -310,64 +301,6 @@ def next_q(update, context):
 
     send_question(context.bot, chat_id)
 
-# ================= LEADERBOARD ==================
-
-def leaderboard(update, context):
-    if not group_only(update):
-        return
-
-    data = database.get_global_leaderboard()
-
-    if not data:
-        update.message.reply_text("Belum ada data leaderboard.")
-        return
-
-    text = "🏆 LEADERBOARD GLOBAL 🏆\n\n"
-
-    for i, (name, score) in enumerate(data, start=1):
-        rank_name = get_rank(score)
-        text += f"{i}. {name} — {rank_name} ({score})\n"
-
-    update.message.reply_text(text, parse_mode="HTML")
-
-# ================= TOP GRUP ==================
-
-def topgrup(update, context):
-    if not group_only(update):
-        return
-
-    chat_id = str(update.effective_chat.id)
-    data = database.get_group_leaderboard(chat_id)
-
-    if not data:
-        update.message.reply_text("Belum ada leaderboard di grup ini.")
-        return
-
-    text = "🏆 LEADERBOARD GRUP 🏆\n\n"
-
-    for i, (name, score) in enumerate(data, start=1):
-        rank_name = get_rank(score)
-        text += f"{i}. {name} — {rank_name} ({score})\n"
-
-    update.message.reply_text(text, parse_mode="HTML")
-
-# ================= STATS ==================
-
-def stats(update, context):
-    user_id = str(update.effective_user.id)
-
-    score = database.get_user_score(user_id) or 0
-    rank_name = get_rank(score)
-    global_rank = database.get_global_rank(user_id)
-
-    update.message.reply_text(
-        f"📊 Stats\n\n"
-        f"🔥MMR kamu sekarang 👉 {score}\n"
-        f"🏆RANK : {rank_name}\n"
-        f"🌍<b>GLOBAL RANK : #{global_rank if global_rank else '-'}</b>\n",
-        parse_mode="HTML"
-    )
-
 # ================= RUN ==================
 
 def main():
@@ -378,9 +311,6 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("next", next_q))
-    dp.add_handler(CommandHandler("leaderboard", leaderboard))
-    dp.add_handler(CommandHandler("topgrup", topgrup))
-    dp.add_handler(CommandHandler("stats", stats))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, answer))
 
     print("BOT RUNNING...")
