@@ -92,7 +92,7 @@ def start(update, context):
         "hero_data": HERO_QUESTIONS,
         "item_data": ITEM_QUESTIONS,
         "spell_data": SPELL_QUESTIONS,
-        "emblem_data": EMBBLEM_QUESTIONS,
+        "emblem_data": EMBLEM_QUESTIONS,
 
         "hero_pool": random.sample(HERO_QUESTIONS, len(HERO_QUESTIONS)),
         "item_pool": random.sample(ITEM_QUESTIONS, len(ITEM_QUESTIONS)),
