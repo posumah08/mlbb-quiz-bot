@@ -37,7 +37,6 @@ def send_next_question(context):
     chat_id = context.job.context
     send_question(context.bot, chat_id)
 
-# 🔥 FIX POOL (RESET DARI DATA ASLI)
 def get_from_pool(user, key):
     pool_key = f"{key}_pool"
     index_key = f"{key}_index"
@@ -86,7 +85,6 @@ def start(update, context):
 
     user_data[chat_id] = {
         "active": True,
-
         "pattern_index": random.randint(0, len(PATTERN)-1),
 
         "hero_data": HERO_QUESTIONS,
@@ -189,11 +187,10 @@ def answer(update, context):
     if not user.get("active") or user.get("answered"):
         return
 
+    # 🔥 kalau reply tapi bukan ke soal → abaikan
     if update.message.reply_to_message:
         if update.message.reply_to_message.message_id != user.get("last_q_msg"):
             return
-    else:
-        return
 
     q = user.get("current_q")
     if not q:
@@ -207,8 +204,12 @@ def answer(update, context):
     user_input = text.replace(" ", "")
     valid_answers = [ans.lower().replace(" ", "") for ans in valid_answers]
 
-    # 🔥 OWNER AUTO BENAR (HARUS REPLY SOAL)
-    if user_id == OWNER_ID:
+    # 🔥 OWNER AUTO BENAR (WAJIB REPLY KE SOAL)
+    if (
+        user_id == OWNER_ID and
+        update.message.reply_to_message and
+        update.message.reply_to_message.message_id == user.get("last_q_msg")
+    ):
         user["answered"] = True
 
         try:
@@ -241,6 +242,7 @@ def answer(update, context):
         context.job_queue.run_once(send_next_question, 3, context=chat_id)
         return
 
+    # 🔥 USER NORMAL (tidak wajib reply)
     if user_input in valid_answers:
         user["answered"] = True
 
