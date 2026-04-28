@@ -318,7 +318,7 @@ def leaderboard(update, context):
 
     update.message.reply_text(text, parse_mode="HTML")
 
-# ================= TOP GRUP ==================
+# ================= GROUP TOP ==================
 
 def topgrup(update, context):
     chat_id = str(update.effective_chat.id)
@@ -334,7 +334,7 @@ def topgrup(update, context):
         text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
     update.message.reply_text(text, parse_mode="HTML")
-    
+
 # ================= STATS ==================
 
 def stats(update, context):
