@@ -308,16 +308,15 @@ def leaderboard(update, context):
     data = database.get_global_leaderboard()
 
     if not data:
-        update.message.reply_text("Belum ada data leaderboard.")
+        update.message.reply_text("Belum ada data.")
         return
 
-    text = "🏆 LEADERBOARD GLOBAL 🏆\n\n"
+    text = "<b>🏆 GLOBAL LEADERBOARD</b>\n\n"
 
-    for i, (name, score) in enumerate(data, start=1):
-        rank_name = get_rank(score)
-        text += f"{i}. {name} — {rank_name} ({score})\n"
+    for i, (name, score) in enumerate(data, 1):
+        text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, parse_mode="HTML")
 
 # ================= TOP GRUP ==================
 
