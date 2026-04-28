@@ -325,17 +325,16 @@ def topgrup(update, context):
     data = database.get_group_leaderboard(chat_id)
 
     if not data:
-        update.message.reply_text("Belum ada leaderboard di grup ini.")
+        update.message.reply_text("Belum ada data grup.")
         return
 
-    text = "🏆 LEADERBOARD GRUP 🏆\n\n"
+    text = "<b>🏆 LEADERBOARD GRUP</b>\n\n"
 
-    for i, (name, score) in enumerate(data, start=1):
-        rank_name = get_rank(score)
-        text += f"{i}. {name} — {rank_name} ({score})\n"
+    for i, (name, score) in enumerate(data, 1):
+        text += f"{i}. {name} — {get_rank(score)} ({score})\n"
 
-    update.message.reply_text(text)
-
+    update.message.reply_text(text, parse_mode="HTML")
+    
 # ================= STATS ==================
 
 def stats(update, context):
